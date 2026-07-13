@@ -1,0 +1,57 @@
+{
+  "$comment": "Synthetic feature rows exercising every eligibility branch. The Spotify row exists to prove the boundary: it must always carry trainingEligible=false and recommendationEligible=false. verify-feature-provenance.ts and the testkit policy test both fail the build if that ever changes.",
+  "rows": [
+    {
+      "canonicalRecordingId": "rec-0001",
+      "feature": "tempo_bucket",
+      "value": 0.62,
+      "provenance": {
+        "provider": "synthetic",
+        "dataset": "fixtures",
+        "licensePolicyId": "synthetic-fixtures@1",
+        "ingestedAt": "2026-07-13T00:00:00.000Z"
+      },
+      "trainingEligible": false,
+      "recommendationEligible": true
+    },
+    {
+      "canonicalRecordingId": "rec-0002",
+      "feature": "energy_estimate",
+      "value": 0.41,
+      "provenance": {
+        "provider": "musicbrainz",
+        "dataset": "core",
+        "licensePolicyId": "musicbrainz-core@1",
+        "ingestedAt": "2026-07-13T00:00:00.000Z"
+      },
+      "trainingEligible": true,
+      "recommendationEligible": true
+    },
+    {
+      "canonicalRecordingId": "rec-0002",
+      "feature": "community_tag_score",
+      "value": 0.77,
+      "provenance": {
+        "provider": "musicbrainz",
+        "dataset": "supplementary",
+        "licensePolicyId": "musicbrainz-supplementary@1",
+        "ingestedAt": "2026-07-13T00:00:00.000Z"
+      },
+      "trainingEligible": false,
+      "recommendationEligible": false
+    },
+    {
+      "canonicalRecordingId": "rec-0003",
+      "feature": "export_match_confidence",
+      "value": 0.93,
+      "provenance": {
+        "provider": "spotify",
+        "dataset": "export-resolution",
+        "licensePolicyId": "spotify-export@1",
+        "ingestedAt": "2026-07-13T00:00:00.000Z"
+      },
+      "trainingEligible": false,
+      "recommendationEligible": false
+    }
+  ]
+}

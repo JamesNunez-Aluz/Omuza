@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "@resonance/ui-tokens/tokens.css";
+
+/*
+ * Tailwind theme is derived from @resonance/ui-tokens custom properties —
+ * components use utilities/vars from here, never ad-hoc values (spec §14.5).
+ */
+@theme inline {
+  --color-paper: var(--rz-neutral-0);
+  --color-ink: var(--rz-neutral-900);
+  --color-muted: var(--rz-neutral-400);
+  --color-accent: var(--rz-accent-default);
+  --font-serif: var(--rz-typography-font-family-serif);
+  --font-sans: var(--rz-typography-font-family-sans);
+  --radius-sm: var(--rz-radius-sm);
+  --radius-md: var(--rz-radius-md);
+}
+
+body {
+  background: var(--rz-neutral-0);
+  color: var(--rz-neutral-900);
+  font-family: var(--rz-typography-font-family-sans);
+  line-height: var(--rz-typography-line-height-normal);
+}
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--rz-spacing-16) var(--rz-spacing-6);
+}
+
+.page h1 {
+  font-family: var(--rz-typography-font-family-serif);
+  font-size: var(--rz-typography-scale-xl);
+  line-height: var(--rz-typography-line-height-tight);
+  margin-bottom: var(--rz-spacing-6);
+}
+
+.lede {
+  font-family: var(--rz-typography-font-family-serif);
+  font-size: var(--rz-typography-scale-lg);
+  margin-bottom: var(--rz-spacing-8);
+}
+
+.status {
+  font-size: var(--rz-typography-scale-sm);
+  color: var(--rz-neutral-500);
+  border-left: 2px solid var(--rz-accent-default);
+  padding-left: var(--rz-spacing-3);
+}

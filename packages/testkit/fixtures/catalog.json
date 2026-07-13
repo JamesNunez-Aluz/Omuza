@@ -1,0 +1,13 @@
+{
+  "$comment": "Synthetic catalog fixtures. Every artist, recording, and value is invented — no real provider content, no real OAuth tokens, no production data (CLAUDE.md code standards).",
+  "artists": [
+    { "key": "artist-nebula", "name": "Nebula Cartographers", "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" },
+    { "key": "artist-tidal", "name": "Tidal Arithmetic", "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" },
+    { "key": "artist-paper", "name": "Paper Lantern Choir", "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" }
+  ],
+  "recordings": [
+    { "key": "rec-0001", "title": "Meridian Sketch", "artistKey": "artist-nebula", "durationMs": 214000, "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" },
+    { "key": "rec-0002", "title": "Low Tide Counting", "artistKey": "artist-tidal", "durationMs": 187000, "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" },
+    { "key": "rec-0003", "title": "Lantern Arithmetic", "artistKey": "artist-paper", "durationMs": 243000, "provenanceProvider": "synthetic", "licensePolicyId": "synthetic-fixtures@1" }
+  ]
+}
