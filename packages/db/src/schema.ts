@@ -3,7 +3,10 @@ import {
   date,
   doublePrecision,
   integer,
+  jsonb,
+  numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -34,11 +37,17 @@ export const artists = pgTable("artists", {
   id: uuid("id").primaryKey().defaultRandom(),
   canonicalMbid: text("canonical_mbid").unique(),
   name: text("name").notNull(),
+  sortName: text("sort_name"),
+  disambiguation: text("disambiguation"),
+  countryCode: text("country_code"),
+  beginDate: text("begin_date"),
+  endDate: text("end_date"),
   provenanceProvider: text("provenance_provider").notNull(),
   licensePolicyId: text("license_policy_id")
     .notNull()
     .references(() => sourceLicenses.id),
   ingestedAt: timestamp("ingested_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const recordings = pgTable("recordings", {
@@ -49,12 +58,225 @@ export const recordings = pgTable("recordings", {
     .notNull()
     .references(() => artists.id),
   durationMs: integer("duration_ms"),
+  languageCode: text("language_code"),
+  isExplicit: boolean("is_explicit"),
+  firstReleaseDate: text("first_release_date"),
+  disambiguation: text("disambiguation"),
+  status: text("status").notNull().default("active"),
   provenanceProvider: text("provenance_provider").notNull(),
   licensePolicyId: text("license_policy_id")
     .notNull()
     .references(() => sourceLicenses.id),
   ingestedAt: timestamp("ingested_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const recordingArtists = pgTable(
+  "recording_artists",
+  {
+    recordingId: uuid("recording_id")
+      .notNull()
+      .references(() => recordings.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id")
+      .notNull()
+      .references(() => artists.id),
+    creditName: text("credit_name").notNull(),
+    position: integer("position").notNull(),
+    joinPhrase: text("join_phrase"),
+  },
+  (table) => [primaryKey({ columns: [table.recordingId, table.artistId, table.position] })],
+);
+
+export const recordingExternalIds = pgTable("recording_external_ids", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id, { onDelete: "cascade" }),
+  idType: text("id_type").notNull(),
+  provider: text("provider").notNull(),
+  externalId: text("external_id").notNull(),
+  provenanceProvider: text("provenance_provider").notNull(),
+  licensePolicyId: text("license_policy_id")
+    .notNull()
+    .references(() => sourceLicenses.id),
+  validFrom: timestamp("valid_from", { withTimezone: true }).notNull().defaultNow(),
+  validTo: timestamp("valid_to", { withTimezone: true }),
+});
+
+export const catalogSourceRecords = pgTable("catalog_source_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: text("provider").notNull(),
+  entityType: text("entity_type").notNull(),
+  externalId: text("external_id").notNull(),
+  contentHash: text("content_hash").notNull(),
+  licensePolicyId: text("license_policy_id")
+    .notNull()
+    .references(() => sourceLicenses.id),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const catalogSearchCache = pgTable("catalog_search_cache", {
+  queryHash: text("query_hash").primaryKey(),
+  query: text("query").notNull(),
+  response: jsonb("response").notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  emailNormalized: text("email_normalized").notNull().unique(),
+  displayName: text("display_name"),
+  status: text("status").notNull().default("active"),
+  locale: text("locale").notNull().default("en"),
+  timeZone: text("time_zone").notNull().default("UTC"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const authTokens = pgTable("auth_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  emailNormalized: text("email_normalized").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  purpose: text("purpose").notNull().default("login"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  rotatedFrom: uuid("rotated_from"),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});
+
+export const consentRecords = pgTable("consent_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  purpose: text("purpose").notNull(),
+  policyVersion: text("policy_version").notNull(),
+  status: text("status").notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  source: text("source").notNull().default("web"),
+  metadata: jsonb("metadata").notNull().default({}),
+});
+
+export const contextProfiles = pgTable("context_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  systemKey: text("system_key"),
+  discoveryLevel: integer("discovery_level").notNull().default(50),
+  explicitContentPolicy: text("explicit_content_policy").notNull().default("allowed"),
+  familiarityPreference: text("familiarity_preference").notNull().default("balanced"),
+  popularityPreference: text("popularity_preference").notNull().default("any"),
+  vocalPreference: text("vocal_preference").notNull().default("any"),
+  languageAllowlist: text("language_allowlist").array().notNull().default([]),
+  languageBlocklist: text("language_blocklist").array().notNull().default([]),
+  eraStartYear: integer("era_start_year"),
+  eraEndYear: integer("era_end_year"),
+  structuredIntent: jsonb("structured_intent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const userSeedItems = pgTable("user_seed_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  entityType: text("entity_type").notNull(),
+  artistId: uuid("artist_id").references(() => artists.id),
+  recordingId: uuid("recording_id").references(() => recordings.id),
+  sentiment: text("sentiment").notNull(),
+  strength: numeric("strength", { precision: 3, scale: 2 }).notNull().default("1.0"),
+  contextId: uuid("context_id").references(() => contextProfiles.id),
+  declaredAt: timestamp("declared_at", { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+});
+
+export const userPreferences = pgTable("user_preferences", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  contextId: uuid("context_id").references(() => contextProfiles.id),
+  namespace: text("namespace").notNull(),
+  key: text("key").notNull(),
+  preferenceValue: numeric("preference_value", { precision: 4, scale: 3 }).notNull(),
+  confidence: numeric("confidence", { precision: 4, scale: 3 }).notNull(),
+  evidenceCount: integer("evidence_count").notNull().default(1),
+  origin: text("origin").notNull(),
+  lastEvidenceAt: timestamp("last_evidence_at", { withTimezone: true }).notNull().defaultNow(),
+  modelVersion: text("model_version").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const preferenceEvidence = pgTable("preference_evidence", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userPreferenceId: uuid("user_preference_id")
+    .notNull()
+    .references(() => userPreferences.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  sourceEntityId: uuid("source_entity_id"),
+  weight: numeric("weight", { precision: 4, scale: 3 }).notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  reversalOfId: uuid("reversal_of_id"),
+});
+
+export const privacyRequests = pgTable("privacy_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),
+  status: text("status").notNull().default("queued"),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  payload: jsonb("payload"),
+  failureReason: text("failure_reason"),
+});
+
+export const auditEvents = pgTable("audit_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id"),
+  action: text("action").notNull(),
+  entityType: text("entity_type"),
+  entityId: text("entity_id"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  metadata: jsonb("metadata").notNull().default({}),
+});
+
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    key: text("key").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    route: text("route").notNull(),
+    requestHash: text("request_hash").notNull(),
+    status: integer("status").notNull(),
+    response: jsonb("response").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.key, table.userId, table.route] })],
+);
 
 export const recordingFeatures = pgTable("recording_features", {
   id: uuid("id").primaryKey().defaultRandom(),

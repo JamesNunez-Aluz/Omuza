@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { QUEUES, createQueue } from "../src/queue.js";
-import type { PingJobData } from "../src/queue.js";
+import { QUEUES, createQueue } from "@resonance/db";
+import type { PingJobData } from "@resonance/db";
 import type PgBoss from "pg-boss";
 
 const databaseUrl = process.env.DATABASE_URL;

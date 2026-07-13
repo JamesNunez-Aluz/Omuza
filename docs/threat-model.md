@@ -25,13 +25,18 @@ security-critical TODO may be unowned (spec §21 M0 acceptance).
 | TM-2 | Secrets/PII in logs | Pino redaction paths + tests (**in place, M0**); log review gate per milestone | Engineering |
 | TM-3 | SQL injection | Parameterized queries everywhere (**in place**); no string-built SQL in review checklist | Engineering |
 | TM-4 | XSS / clickjacking | CSP, frame-ancestors none, nosniff (**baseline, M0**); nonce-based CSP before auth ships (M1) | Engineering |
-| TM-5 | Credential stuffing / session fixation | First-party auth hardening + tests (**open — M1**) | Engineering |
-| TM-6 | IDOR on user resources | AuthZ tests per route (**open — M1**) | Engineering |
+| TM-5 | Credential stuffing / session fixation | Passwordless email login: hashed single-use 15-min tokens, per-email rate limit, enumeration-resistant responses; sessions hashed, rotated past half-life, revocable; CSRF origin checks (**in place, M1** — tested in apps/web/integration) | Engineering |
+| TM-6 | IDOR on user resources | Every repository query is user-scoped; foreign ids answer 404; horizontal-escalation tests per resource (**in place, M1**) | Engineering |
 | TM-7 | OAuth token theft (Spotify) | Encrypted at rest, never logged, purge on disconnect (**open — M4**, ADR 0012) | Engineering |
-| TM-8 | Provider abuse/outage cascades | Timeouts, rate limits, kill switches, contract tests (**open — M1 for MusicBrainz**) | Engineering |
+| TM-8 | Provider abuse/outage cascades | MusicBrainz: fixed base URL, 1 req/s limiter, timeout, size limit, retry with Retry-After, schema validation, kill switch, contract tests for 429/timeout/malformed (**in place, M1**); degraded search is surfaced honestly | Engineering |
+| TM-11 | Weak step-up on account deletion | Confirmation phrase today; full re-authentication step-up before public beta (**open — M5/M6**) | Engineering |
+| TM-12 | Export payload retention | privacy_requests.payload holds exports indefinitely; retention/cleanup job (**open — M5**) | Engineering |
 | TM-9 | Supply-chain compromise | Lockfile pinning, `pnpm audit` + gitleaks in CI (**in place, M0**); provenance review for new deps | Engineering |
 | TM-10 | Migration tampering | Hash-verified applied migrations (**in place, M0**) | Engineering |
 
-## Non-goals at M0
+## Status notes (Milestone 1)
 
-No auth surface exists yet; no external provider calls exist yet. Entries TM-5..TM-8 are intentionally open with milestone owners rather than silently absent.
+TM-5, TM-6, and TM-8 moved to “in place” with route-level security tests
+(`apps/web/integration/*.integration.test.ts`) and provider contract tests
+(`packages/integrations/musicbrainz`). Still open: TM-4 nonce CSP, TM-7
+(Milestone 4), TM-11 step-up re-auth, TM-12 export retention.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSecurityHeaders } from "./security-headers.js";
+import { buildSecurityHeaders } from "./security-headers";
 
 function headerMap(dev: boolean): Map<string, string> {
   return new Map(buildSecurityHeaders({ dev }).map((h) => [h.key, h.value]));

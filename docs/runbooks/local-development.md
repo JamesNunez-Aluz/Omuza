@@ -30,6 +30,13 @@ pnpm test:e2e                 # Playwright, boots next dev itself
 recommender etc.) and license/provenance violations. Do not merge with it red;
 do not "fix" it by editing the allowlists without an ADR.
 
+## Signing in locally
+
+The login flow is passwordless email. With docker compose up, the sign-in
+link lands in Mailpit: http://localhost:8025. Request a link on `/`, open the
+email, follow the link, and onboarding starts. Without Mailpit the API still
+answers 202 (enumeration resistance) and logs `login_email_failed`.
+
 ## Common failures
 
 - **`/health/ready` 503** — postgres not up or migrations missing: `docker compose up -d && pnpm db:migrate`.

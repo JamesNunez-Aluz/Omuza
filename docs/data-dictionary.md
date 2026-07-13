@@ -1,8 +1,68 @@
 # Data dictionary
 
-Milestone 0 tables (see `packages/db/migrations/`). All timestamps are UTC
-`timestamptz`. Every catalog row carries provenance and a license policy
-reference (ADR 0006).
+Tables from migrations 0000–0001 (see `packages/db/migrations/`). All
+timestamps are UTC `timestamptz`. Every catalog row carries provenance and a
+license policy reference (ADR 0006). Taste tables contain no
+destination-service fields — enforced by `pnpm policy:check` (rule P5).
+
+## Identity and consent (Zone A)
+
+- **`users`** — id, `email_normalized` (unique), display_name, status
+  (active/suspended/deletion_pending/deleted), locale, time_zone,
+  `onboarding_completed_at`, timestamps, `deleted_at`. Deletion anonymizes:
+  email becomes `deleted:<id>`.
+- **`auth_tokens`** — passwordless login tokens: `token_hash` (sha-256, the
+  secret itself is never stored), 15-minute expiry, single-use
+  (`consumed_at`), indexed per email for rate limiting.
+- **`sessions`** — `token_hash` (unique), expiry (7 days), `last_seen_at`,
+  `rotated_from` (rotation lineage), `revoked_at`.
+- **`consent_records`** — **append-only** (database trigger rejects
+  UPDATE/DELETE): purpose, immutable `policy_version`, status
+  granted/withdrawn, occurred_at, source. Latest record per purpose wins.
+  Retained in anonymized form after account deletion as a legal record.
+
+## Taste and context (Zone A)
+
+- **`user_seed_items`** — entity_type artist|recording with a CHECK that
+  exactly one entity FK is set; sentiment (strong_positive, positive,
+  negative, hard_block, fatigue), strength 0–1, optional `context_id`,
+  `declared_at`, `removed_at` (soft delete preserves history).
+- **`context_profiles`** — name (unique per user), optional system_key,
+  discovery_level 0–100, explicit/familiarity/popularity/vocal policies,
+  language allow/blocklists, era range, `structured_intent` jsonb (declared
+  free text; parsed intent arrives with the LLM layer).
+- **`user_preferences`** — namespace/key facts with preference_value −1..1,
+  confidence 0..1, evidence_count, origin (explicit | first_party_feedback |
+  derived — never mixed irreversibly), `model_version`
+  (e.g. `seed-derivation@1`). The explicit/seed_entity slice is fully
+  recomputed from active seeds by the worker.
+- **`preference_evidence`** — lineage per preference: event_type,
+  source_entity_id (seed id), weight, optional `reversal_of_id`.
+
+## Privacy and audit
+
+- **`privacy_requests`** — kind export|delete, status queued → processing →
+  completed/failed, export payload jsonb (retention job scheduled for M5).
+- **`audit_events`** — action, entity, occurred_at, minimal metadata; kept
+  anonymized after deletion.
+- **`idempotency_keys`** — (key, user, route) → request hash + stored
+  response for retry-safe mutations.
+
+## Catalog additions (Zone B)
+
+- **`artists`** now carries sort_name, disambiguation, country_code,
+  begin/end dates.
+- **`recordings`** now carries language_code, is_explicit, first_release_date,
+  disambiguation, status (active/merged/retired).
+- **`recording_artists`** — credited artists with position and join phrase;
+  PK (recording_id, artist_id, position).
+- **`recording_external_ids`** — ISRC etc. with provenance + license FK;
+  unique (provider, id_type, external_id).
+- **`catalog_source_records`** — source lineage (provider, entity, external
+  id, content hash) without storing raw payloads.
+- **`catalog_search_cache`** — 24h provider search cache (etiquette + speed).
+
+## Milestone 0 tables
 
 ## `source_licenses`
 

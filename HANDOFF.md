@@ -1,6 +1,14 @@
 # Resonance — Project Review & Handoff
 
-**Date:** 2026-07-13 · **State:** Milestone 0 implemented and verified · **Branch:** `claude/project-review-handoff-64zd8o`
+**Date:** 2026-07-13 · **State:** Milestones 0 and 1 implemented and verified · **Branch:** `claude/project-review-handoff-64zd8o`
+
+> **Milestone 1 update (same date):** identity (passwordless email auth,
+> sessions), append-only consent, MusicBrainz catalog adapter + search,
+> onboarding (seeds, contexts, discovery controls, review), taste-profile
+> derivation with recompute jobs, privacy export/delete, and the security
+> test suite are implemented on top of the M0 skeleton described below. See
+> `docs/api/README.md`, `docs/data-dictionary.md`, and the Milestone 1
+> completion report in the session log. Sections below describe M0.
 
 ---
 

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,6 +78,25 @@ for (const row of fixture.rows) {
       `P4: fixture "${row.feature}" claims training eligibility its license (${row.provenance.licensePolicyId}) does not grant`,
     );
   }
+}
+
+// P5 — taste tables must contain no destination-service fields (spec §21 M1).
+const TASTE_TABLES = ["user_seed_items", "user_preferences", "context_profiles", "preference_evidence"];
+const PROHIBITED_TASTE_COLUMNS = /spotify|destination|external_user|provider_track|service_connection/i;
+const migrationsDir = path.join(repoRoot, "packages/db/migrations");
+for (const file of readdirSync(migrationsDir).filter((name) => name.endsWith(".sql"))) {
+  const sql = readFileSync(path.join(migrationsDir, file), "utf8");
+  for (const table of TASTE_TABLES) {
+    const definition = extractCreateTable(sql, table);
+    if (definition && PROHIBITED_TASTE_COLUMNS.test(definition)) {
+      failures.push(`P5: taste table ${table} in ${file} contains a destination-service field`);
+    }
+  }
+}
+
+function extractCreateTable(sql: string, table: string): string | undefined {
+  const match = sql.match(new RegExp(`create table ${table} \\(([\\s\\S]*?)\\n\\);`, "i"));
+  return match?.[1];
 }
 
 if (failures.length > 0) {

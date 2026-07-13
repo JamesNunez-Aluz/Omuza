@@ -1,12 +1,66 @@
 # API documentation
 
-Milestone 0 surface is health-only. OpenAPI generation from shared Zod
-schemas begins in Milestone 1 with the first product endpoints.
+Versioned JSON API under `/api/v1` (spec §13). All inputs/outputs validated
+with the shared Zod schemas in `packages/validation/src/api.ts`. Errors use
+the envelope of §13.1 (`error.code`, `message`, `requestId`, `retryable`,
+client-safe `details`). Authentication errors never reveal account existence.
 
-| Endpoint | Method | Purpose |
+Auth: session cookie (`rz_session`, HttpOnly, SameSite=Lax, Secure in prod),
+issued by the passwordless email flow. All mutating routes require a
+same-origin `Origin`/`Referer` header (CSRF defense). Retryable mutations
+accept `Idempotency-Key` (same key + same body replays; different body → 409).
+
+## Health
+
+| Endpoint | Method | Notes |
 |---|---|---|
-| `/health/live` | GET | Web liveness — 200 when the process serves requests |
-| `/health/ready` | GET | Web readiness — 200 only when config is valid and PostgreSQL answers; 503 otherwise |
+| `/health/live` | GET | 200 when the process serves requests |
+| `/health/ready` | GET | 200 when config valid and PostgreSQL answers; 503 otherwise |
 
-Worker exposes the same two paths on `WORKER_HEALTH_PORT` (default 3001);
-readiness additionally requires the pg-boss queue to be started.
+Worker exposes the same paths on `WORKER_HEALTH_PORT` (default 3001).
+
+## Authentication (passwordless email, spec §16.2)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/auth/request-link` | POST `{email}` | Always 202 for well-formed requests (enumeration-resistant); ≤5 links/email/hour, then 429 |
+| `/api/v1/auth/verify` | POST `{token}` | Redeems a single-use, 15-minute token; sets the session cookie |
+| `/api/v1/auth/logout` | POST | Revokes the session, clears the cookie |
+| `/api/v1/auth/me` | GET | Current user + effective consents |
+
+## Catalog
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/catalog/search` | GET `?q=&type=artist,recording&limit=` | Canonical entities with disambiguation, MBIDs, `sourceAttribution`; `degraded: true` when the provider fails; responses cached 24h |
+
+## Taste
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/taste/seeds` | GET / POST | Bulk declare seeds (sentiments: strong_positive, positive, negative, hard_block, fatigue; strength 0–1; optional owned contextId). POST supports Idempotency-Key and enqueues profile recomputation |
+| `/api/v1/taste/seeds/{seedId}` | PATCH / DELETE | User-scoped; DELETE is a soft delete and triggers recomputation |
+| `/api/v1/taste/summary` | GET | Active seeds with display entities + derived preferences |
+| `/api/v1/onboarding/complete` | POST | 409 until required consents and ≥5 positive / ≥3 negative seeds exist |
+
+## Context profiles
+
+`POST/GET /api/v1/contexts`, `GET/PATCH/DELETE /api/v1/contexts/{contextId}` —
+discovery level 0–100, familiarity/popularity/vocals/explicit policies,
+language lists, era range, declared free-text intent (stored, not yet parsed).
+
+## Privacy (spec §13.13)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/privacy/consents` | GET / POST | Append-only consent records; withdrawal appends, never mutates |
+| `/api/v1/privacy/export` | POST | 202; worker attaches the export payload to the request |
+| `/api/v1/privacy/delete` | POST `{confirm}` | Requires the confirmation phrase; 202; asynchronous, auditable |
+| `/api/v1/privacy/requests/{requestId}` | GET | User-scoped status/payload |
+
+## Settings
+
+`GET/PATCH /api/v1/settings` — display name, locale, time zone.
+
+OpenAPI generation from these schemas is planned with the first external
+consumer; the Zod schemas are the source of truth today.

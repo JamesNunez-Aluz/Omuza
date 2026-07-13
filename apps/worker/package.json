@@ -13,6 +13,7 @@
   "dependencies": {
     "@resonance/config": "workspace:*",
     "@resonance/db": "workspace:*",
+    "@resonance/domain": "workspace:*",
     "@resonance/observability": "workspace:*",
     "pg-boss": "^10.1.0"
   },

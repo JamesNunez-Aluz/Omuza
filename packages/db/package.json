@@ -19,7 +19,8 @@
   "dependencies": {
     "@resonance/domain": "workspace:*",
     "drizzle-orm": "^0.44.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "pg-boss": "^10.1.0"
   },
   "devDependencies": {
     "@types/pg": "^8.11.0",
