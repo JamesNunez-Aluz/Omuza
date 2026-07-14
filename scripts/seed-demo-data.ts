@@ -1,10 +1,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createPool } from "../packages/db/src/client.ts";
+import { createDatabase } from "../packages/db/src/client.ts";
 import { migrate } from "../packages/db/src/migrate.ts";
 import { seedLicenseRegistry } from "../packages/db/src/seed-licenses.ts";
+import { seedSyntheticCatalog } from "../packages/db/src/seed-synthetic-catalog.ts";
 import { loadCatalogFixtures } from "../packages/testkit/src/fixtures.ts";
+import { buildSyntheticSnapshot } from "../packages/testkit/src/synthetic-snapshot.ts";
 
 /**
  * Seed synthetic demo data (Milestone 0 deliverable). Idempotent; safe to
@@ -19,11 +21,16 @@ if (!databaseUrl) {
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const pool = createPool(databaseUrl);
+const { db, pool } = createDatabase(databaseUrl);
 
 try {
   await migrate(pool, path.join(repoRoot, "packages/db/migrations"));
   const policies = await seedLicenseRegistry(pool);
+
+  // Synthetic engine catalog: 20 artists × 3 recordings with eligible
+  // features, so a local user can generate a real playlist end to end.
+  const snapshot = buildSyntheticSnapshot();
+  await seedSyntheticCatalog(db, snapshot);
 
   const catalog = loadCatalogFixtures();
   const artistIds = new Map<string, string>();
@@ -66,6 +73,8 @@ try {
       licensePolicies: policies,
       artists: artistIds.size,
       recordings: recordingCount,
+      syntheticCatalogArtists: snapshot.artists.length,
+      syntheticCatalogRecordings: snapshot.recordings.length,
     }),
   );
 } finally {

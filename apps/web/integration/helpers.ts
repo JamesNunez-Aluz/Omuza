@@ -36,6 +36,8 @@ const testConfig: AppConfig = {
   workerHealthPort: 3001,
   featureSpotifyExport: false,
   featureMusicbrainzProvider: true,
+  featureListenbrainzProvider: false,
+  listenbrainzBaseUrl: "https://listenbrainz.example.test",
   musicbrainzBaseUrl: "https://musicbrainz.example.test/ws/2",
   musicbrainzUserAgent: "ResonanceTest/0.1 (test@example.test)",
   smtpHost: "localhost",

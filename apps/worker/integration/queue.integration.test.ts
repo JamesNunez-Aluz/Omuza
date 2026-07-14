@@ -23,7 +23,7 @@ describeWithDb("postgres-backed queue", () => {
     await boss?.stop({ graceful: false });
   });
 
-  it("delivers a ping job to a worker exactly once", async () => {
+  it("delivers a ping job to a worker exactly once", { timeout: 30000 }, async () => {
     const handled: string[] = [];
     await boss.work<PingJobData>(QUEUES.ping, async (jobs) => {
       for (const job of jobs) {

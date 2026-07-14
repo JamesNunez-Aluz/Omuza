@@ -92,6 +92,7 @@ for (const root of SOURCE_ROOTS) {
         if (
           specifier.startsWith("@resonance/spotify") ||
           specifier.startsWith("@resonance/musicbrainz") ||
+          specifier.startsWith("@resonance/listenbrainz") ||
           resolvesIntoIntegrations(file, specifier)
         ) {
           violations.push({

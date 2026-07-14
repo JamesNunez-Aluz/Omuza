@@ -15,9 +15,12 @@
     "@resonance/db": "workspace:*",
     "@resonance/domain": "workspace:*",
     "@resonance/observability": "workspace:*",
+    "@resonance/recommender": "workspace:*",
     "pg-boss": "^10.1.0"
   },
   "devDependencies": {
+    "@resonance/testkit": "workspace:*",
+    "drizzle-orm": "^0.44.7",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

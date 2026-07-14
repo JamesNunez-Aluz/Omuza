@@ -29,6 +29,8 @@ export const configSchema = z.object({
     .enum(["true", "false"])
     .default("true")
     .transform((value) => value === "true"),
+  FEATURE_LISTENBRAINZ_PROVIDER: booleanFlag,
+  LISTENBRAINZ_BASE_URL: z.string().url().default("https://api.listenbrainz.org"),
   MUSICBRAINZ_BASE_URL: z.string().url().default("https://musicbrainz.org/ws/2"),
   MUSICBRAINZ_USER_AGENT: z.string().min(5).default("Resonance/0.1.0 (dev@resonance.local)"),
   SMTP_HOST: z.string().default("localhost"),
@@ -45,6 +47,8 @@ export interface AppConfig {
   workerHealthPort: number;
   featureSpotifyExport: boolean;
   featureMusicbrainzProvider: boolean;
+  featureListenbrainzProvider: boolean;
+  listenbrainzBaseUrl: string;
   musicbrainzBaseUrl: string;
   musicbrainzUserAgent: string;
   smtpHost: string;
@@ -70,6 +74,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     workerHealthPort: raw.WORKER_HEALTH_PORT,
     featureSpotifyExport: raw.FEATURE_SPOTIFY_EXPORT,
     featureMusicbrainzProvider: raw.FEATURE_MUSICBRAINZ_PROVIDER,
+    featureListenbrainzProvider: raw.FEATURE_LISTENBRAINZ_PROVIDER,
+    listenbrainzBaseUrl: raw.LISTENBRAINZ_BASE_URL,
     musicbrainzBaseUrl: raw.MUSICBRAINZ_BASE_URL,
     musicbrainzUserAgent: raw.MUSICBRAINZ_USER_AGENT,
     smtpHost: raw.SMTP_HOST,

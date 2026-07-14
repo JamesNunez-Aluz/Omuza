@@ -43,6 +43,18 @@ Worker exposes the same paths on `WORKER_HEALTH_PORT` (default 3001).
 | `/api/v1/taste/summary` | GET | Active seeds with display entities + derived preferences |
 | `/api/v1/onboarding/complete` | POST | 409 until required consents and ≥5 positive / ≥3 negative seeds exist |
 
+## Recommendation runs (spec §13.6–13.7)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/recommendation-runs` | POST | Queue an async generation: `{contextId?, requestedCount (10–50, default 20), discoveryLevel?, preserveRecordingIds, excludeRecordingIds}`. Discovery defaults to the context's level. 202 with `statusUrl`; supports Idempotency-Key |
+| `/api/v1/recommendation-runs/{runId}` | GET | User-scoped status. Completed/degraded responses include items (recording display, novelty state/probability/confidence, evidence-backed explanation), `degradedProviders`, and `constraintRelaxations`; failed responses carry a safe `failure.code`/`message`. First owner fetch records exposures |
+
+Internal affinity values and provider payloads are never exposed. The full
+decision trace (all candidates, rejection reasons, score breakdowns,
+ranker/selector versions, random seed) is persisted server-side for
+reproducibility and offline evaluation.
+
 ## Context profiles
 
 `POST/GET /api/v1/contexts`, `GET/PATCH/DELETE /api/v1/contexts/{contextId}` —

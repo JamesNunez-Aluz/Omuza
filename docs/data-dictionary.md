@@ -39,6 +39,29 @@ destination-service fields — enforced by `pnpm policy:check` (rule P5).
 - **`preference_evidence`** — lineage per preference: event_type,
   source_entity_id (seed id), weight, optional `reversal_of_id`.
 
+## Recommendation lifecycle (Milestone 2)
+
+- **`recommendation_runs`** — status queued→generating→completed/degraded/
+  failed/cancelled; requested_count (10–50), discovery_level, versions
+  (`ranker_version`, `selector_version`, `profile_snapshot_version`),
+  `random_seed` (reproducibility pin), `degraded_providers`,
+  `constraint_relaxations`, redacted failure fields.
+- **`recommendation_candidates`** — full decision trace: every considered
+  candidate with provider/strategy/rank/score, eligible-features-only
+  `feature_snapshot` (score breakdown + evidence), eligibility decision,
+  rejection reasons, base/final score, selected flag.
+- **`recommendation_items`** — final list: position, score, novelty
+  probability/state/confidence, selection reason; unique (run, position) and
+  (run, recording).
+- **`recommendation_explanations`** — template key, rendered text, evidence
+  JSON (typed records referencing first-party data), generator
+  (template|llm) + version, validated flag.
+- **`exposures`** — recorded at first owner view of a completed run (a
+  *shown* recommendation), with novelty state/probability at exposure.
+- **`known_recordings`** — user knowledge states (confirmed_known,
+  confirmed_new, ledger_known, unknown) with confidence and source;
+  **CHECK: source ≠ 'spotify'**.
+
 ## Privacy and audit
 
 - **`privacy_requests`** — kind export|delete, status queued → processing →

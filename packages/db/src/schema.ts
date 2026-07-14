@@ -278,6 +278,118 @@ export const idempotencyKeys = pgTable(
   (table) => [primaryKey({ columns: [table.key, table.userId, table.route] })],
 );
 
+export const recommendationRuns = pgTable("recommendation_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  contextId: uuid("context_id").references(() => contextProfiles.id),
+  status: text("status").notNull().default("queued"),
+  requestedCount: integer("requested_count").notNull().default(20),
+  discoveryLevel: integer("discovery_level").notNull(),
+  structuredIntentSnapshot: jsonb("structured_intent_snapshot"),
+  profileSnapshotVersion: text("profile_snapshot_version"),
+  rankerVersion: text("ranker_version"),
+  selectorVersion: text("selector_version"),
+  randomSeed: text("random_seed").notNull(),
+  degradedProviders: text("degraded_providers").array().notNull().default([]),
+  constraintRelaxations: text("constraint_relaxations").array().notNull().default([]),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  failureCode: text("failure_code"),
+  failureDetailRedacted: text("failure_detail_redacted"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recommendationCandidates = pgTable("recommendation_candidates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  runId: uuid("run_id")
+    .notNull()
+    .references(() => recommendationRuns.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  provider: text("provider").notNull(),
+  providerStrategy: text("provider_strategy").notNull(),
+  providerRank: integer("provider_rank"),
+  providerScore: doublePrecision("provider_score"),
+  featureSnapshot: jsonb("feature_snapshot").notNull().default({}),
+  eligibilityDecision: text("eligibility_decision").notNull(),
+  rejectionReasons: text("rejection_reasons").array().notNull().default([]),
+  baseScore: doublePrecision("base_score"),
+  finalScore: doublePrecision("final_score"),
+  selected: boolean("selected").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recommendationItems = pgTable("recommendation_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  runId: uuid("run_id")
+    .notNull()
+    .references(() => recommendationRuns.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  position: integer("position").notNull(),
+  score: doublePrecision("score").notNull(),
+  noveltyProbability: doublePrecision("novelty_probability").notNull(),
+  noveltyState: text("novelty_state").notNull(),
+  noveltyConfidence: doublePrecision("novelty_confidence").notNull(),
+  selectionReason: text("selection_reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recommendationExplanations = pgTable("recommendation_explanations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  itemId: uuid("item_id")
+    .notNull()
+    .references(() => recommendationItems.id, { onDelete: "cascade" }),
+  templateKey: text("template_key").notNull(),
+  renderedText: text("rendered_text").notNull(),
+  evidence: jsonb("evidence").notNull().default([]),
+  generator: text("generator").notNull().default("template"),
+  generatorVersion: text("generator_version").notNull(),
+  validated: boolean("validated").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const exposures = pgTable("exposures", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  recommendationRunId: uuid("recommendation_run_id"),
+  recommendationItemId: uuid("recommendation_item_id"),
+  surface: text("surface").notNull(),
+  position: integer("position"),
+  shownAt: timestamp("shown_at", { withTimezone: true }).notNull().defaultNow(),
+  openedDestinationAt: timestamp("opened_destination_at", { withTimezone: true }),
+  noveltyStateAtExposure: text("novelty_state_at_exposure"),
+  noveltyProbabilityAtExposure: doublePrecision("novelty_probability_at_exposure"),
+});
+
+export const knownRecordings = pgTable(
+  "known_recordings",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recordingId: uuid("recording_id")
+      .notNull()
+      .references(() => recordings.id),
+    knowledgeState: text("knowledge_state").notNull(),
+    confidence: doublePrecision("confidence").notNull(),
+    source: text("source").notNull(),
+    firstKnownAt: timestamp("first_known_at", { withTimezone: true }).notNull().defaultNow(),
+    lastConfirmedAt: timestamp("last_confirmed_at", { withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.recordingId] })],
+);
+
 export const recordingFeatures = pgTable("recording_features", {
   id: uuid("id").primaryKey().defaultRandom(),
   recordingId: uuid("recording_id")

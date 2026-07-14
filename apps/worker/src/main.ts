@@ -1,10 +1,16 @@
 import { loadConfig } from "@resonance/config";
 import { QUEUES, createDatabase, createQueue, pingDatabase } from "@resonance/db";
-import type { PingJobData, PrivacyJob, TasteRecomputeJob } from "@resonance/db";
+import type {
+  PingJobData,
+  PrivacyJob,
+  RecommendationGenerateJob,
+  TasteRecomputeJob,
+} from "@resonance/db";
 import { createLogger } from "@resonance/observability";
 
 import { startHealthServer } from "./health.js";
 import { processDeleteRequest, processExportRequest } from "./jobs/privacy.js";
+import { runRecommendationJob } from "./jobs/recommendation-generate.js";
 import { recomputeTasteProfile } from "./jobs/taste-recompute.js";
 
 const config = loadConfig();
@@ -39,6 +45,14 @@ await boss.work<PrivacyJob>(QUEUES.privacyExport, async (jobs) => {
 await boss.work<PrivacyJob>(QUEUES.privacyDelete, async (jobs) => {
   for (const job of jobs) {
     await processDeleteRequest(db, logger, job.data);
+  }
+});
+
+// External Strategy-B sources are added here once enabled by license review
+// (ListenBrainz stays off: FEATURE_LISTENBRAINZ_PROVIDER=false, ADR required).
+await boss.work<RecommendationGenerateJob>(QUEUES.recommendationGenerate, async (jobs) => {
+  for (const job of jobs) {
+    await runRecommendationJob(db, logger, job.data.runId);
   }
 });
 

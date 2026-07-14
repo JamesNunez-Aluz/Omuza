@@ -4,6 +4,8 @@ export type { Database } from "./client.js";
 export { migrate } from "./migrate.js";
 export type { MigrationResult } from "./migrate.js";
 export { seedLicenseRegistry } from "./seed-licenses.js";
+export { seedSyntheticCatalog } from "./seed-synthetic-catalog.js";
+export type { SyntheticCatalogInput } from "./seed-synthetic-catalog.js";
 export * from "./repositories/users.js";
 export * from "./repositories/auth.js";
 export * from "./repositories/consents.js";
@@ -13,5 +15,11 @@ export * from "./repositories/contexts.js";
 export * from "./repositories/preferences.js";
 export * from "./repositories/privacy.js";
 export * from "./repositories/idempotency.js";
+export * from "./repositories/recommendations.js";
 export { QUEUES, createQueue } from "./queue.js";
-export type { TasteRecomputeJob, PrivacyJob, PingJobData } from "./queue.js";
+export type {
+  TasteRecomputeJob,
+  PrivacyJob,
+  PingJobData,
+  RecommendationGenerateJob,
+} from "./queue.js";

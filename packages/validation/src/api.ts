@@ -96,6 +96,17 @@ export const patchContextProfileSchema = contextProfileInputSchema.partial().ref
   { message: "empty patch" },
 );
 
+// --- Recommendation runs (spec §13.6) -------------------------------------------
+
+export const createRecommendationRunSchema = z.object({
+  contextId: z.string().uuid().nullable().default(null),
+  requestedCount: z.number().int().min(10).max(50).default(20),
+  /** Defaults to the context's discovery level (or 50) when omitted. */
+  discoveryLevel: z.number().int().min(0).max(100).optional(),
+  preserveRecordingIds: z.array(z.string().uuid()).max(50).default([]),
+  excludeRecordingIds: z.array(z.string().uuid()).max(200).default([]),
+});
+
 // --- Consents (spec §13.13) ---------------------------------------------------
 
 export const consentPurposeSchema = z.enum([

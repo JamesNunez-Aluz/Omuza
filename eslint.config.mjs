@@ -18,6 +18,8 @@ const prohibitedDestinationImports = [
       "@resonance/spotify/*",
       "@resonance/musicbrainz",
       "@resonance/musicbrainz/*",
+      "@resonance/listenbrainz",
+      "@resonance/listenbrainz/*",
       "**/integrations/spotify/**",
     ],
     message:

@@ -11,7 +11,12 @@ export const QUEUES = {
   tasteRecompute: "taste.recompute",
   privacyExport: "privacy.export",
   privacyDelete: "privacy.delete",
+  recommendationGenerate: "recommendation.generate",
 } as const;
+
+export interface RecommendationGenerateJob {
+  runId: string;
+}
 
 export interface PingJobData {
   requestedAt: string;
