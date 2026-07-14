@@ -4,6 +4,7 @@ import {
   listActiveSeeds,
   listConsentRecords,
   markOnboardingComplete,
+  recordAnalyticsEvent,
   recordAuditEvent,
 } from "@resonance/db";
 import {
@@ -63,6 +64,7 @@ export async function POST(request: Request): Promise<Response> {
 
     await markOnboardingComplete(ctx.db, user.id);
     await recordAuditEvent(ctx.db, { userId: user.id, action: "onboarding_completed" });
+    await recordAnalyticsEvent(ctx.db, user.id, "onboarding_completed", { positives, negatives });
     await ctx.enqueue(QUEUES.tasteRecompute, { userId: user.id, reason: "onboarding_completed" });
 
     // Plain-language review payload (spec §5.2 step 5).

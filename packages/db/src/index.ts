@@ -16,6 +16,9 @@ export * from "./repositories/preferences.js";
 export * from "./repositories/privacy.js";
 export * from "./repositories/idempotency.js";
 export * from "./repositories/recommendations.js";
+export * from "./repositories/feedback.js";
+export * from "./repositories/playlists.js";
+export * from "./repositories/analytics.js";
 export { QUEUES, createQueue } from "./queue.js";
 export type {
   TasteRecomputeJob,

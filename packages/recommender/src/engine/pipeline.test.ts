@@ -252,6 +252,54 @@ describe("engine pipeline — reproducibility and safety invariants", () => {
     expect(allProposed).not.toContain(recordingUuid(7, 0));
   });
 
+  it("first-party feedback improves expected rankings in golden scenarios (M3)", () => {
+    // Loved recording by artist 8 (non-seed) → its artist should rise;
+    // disliked recording by artist 9 → excluded outright, artist penalized.
+    const lovedRecording = recordingUuid(8, 0);
+    const dislikedRecording = recordingUuid(9, 0);
+    const withFeedback = {
+      ...profile,
+      feedbackFacts: [
+        { contextId: null, key: `recording:${lovedRecording}`, value: 0.71, confidence: 0.53 },
+        { contextId: null, key: `artist:${artistUuid(8)}`, value: 0.55, confidence: 0.31 },
+        { contextId: null, key: `recording:${dislikedRecording}`, value: -0.56, confidence: 0.46 },
+        { contextId: null, key: `artist:${artistUuid(9)}`, value: -0.38, confidence: 0.27 },
+      ],
+      dislikedRecordingIds: [dislikedRecording],
+    };
+
+    const baseline = generateRecommendations(snapshot, profile, emptyHistory, request());
+    const informed = generateRecommendations(snapshot, withFeedback, emptyHistory, request());
+
+    const bestOf = (
+      result: typeof baseline,
+      artistIndex: number,
+      metric: "fitScore" | "finalScore",
+    ) => {
+      const scores = result.eligible
+        .filter((candidate) => {
+          const recording = snapshot.recordings.find((r) => r.id === candidate.recordingId)!;
+          return recording.primaryArtistId === artistUuid(artistIndex);
+        })
+        .map((candidate) => candidate[metric]);
+      return scores.length > 0 ? Math.max(...scores) : Number.NEGATIVE_INFINITY;
+    };
+
+    // The taste signal (fit) moves toward the feedback in both directions.
+    // Final score for the loved artist may move less: novelty honestly
+    // decreases as the user gains history with an artist (ADR 0010).
+    expect(bestOf(informed, 8, "fitScore")).toBeGreaterThan(bestOf(baseline, 8, "fitScore"));
+    expect(bestOf(informed, 9, "fitScore")).toBeLessThan(bestOf(baseline, 9, "fitScore"));
+    expect(bestOf(informed, 9, "finalScore")).toBeLessThan(bestOf(baseline, 9, "finalScore"));
+
+    // The actively disliked recording never appears and is traced as rejected.
+    expect(informed.items.map((item) => item.candidate.recordingId)).not.toContain(dislikedRecording);
+    const rejection = informed.rejected.find((candidate) => candidate.recordingId === dislikedRecording);
+    if (rejection) {
+      expect(rejection.rejectionReasons).toContain("active_dislike");
+    }
+  });
+
   it("degraded providers pass through to the result for run bookkeeping", () => {
     const result = generateRecommendations(snapshot, profile, emptyHistory, request(), [], ["listenbrainz"]);
     expect(result.degradedProviders).toEqual(["listenbrainz"]);

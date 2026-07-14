@@ -107,6 +107,46 @@ export const createRecommendationRunSchema = z.object({
   excludeRecordingIds: z.array(z.string().uuid()).max(200).default([]),
 });
 
+// --- Feedback (spec §13.8) -------------------------------------------------------
+
+export const postFeedbackSchema = z.object({
+  clientEventId: z.string().uuid(),
+  recommendationItemId: z.string().uuid(),
+  primaryResponse: z.enum(["love", "like", "neutral", "dislike", "not_now", "already_knew"]),
+  reasonCodes: z.array(z.string().min(1).max(40)).max(10).default([]),
+  newnessResponse: z.enum(["new_to_me", "already_knew"]).nullable().default(null),
+  contextId: z.string().uuid().nullable().default(null),
+  supersedesEventId: z.string().uuid().nullable().default(null),
+});
+
+// --- Playlists (spec §13.9–13.10) --------------------------------------------------
+
+export const createPlaylistSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).nullable().default(null),
+  sourceRunId: z.string().uuid(),
+  contextId: z.string().uuid().nullable().default(null),
+});
+
+export const patchPlaylistSchema = z.object({
+  version: z.number().int().min(1),
+  name: z.string().trim().min(1).max(120).optional(),
+  description: z.string().trim().max(500).nullable().optional(),
+});
+
+export const reorderPlaylistSchema = z.object({
+  orderedItemIds: z.array(z.string().uuid()).min(1).max(200),
+});
+
+export const rebuildPlaylistSchema = z.object({
+  runId: z.string().uuid(),
+  preserveRecordingIds: z.array(z.string().uuid()).max(100).default([]),
+});
+
+export const fileExportSchema = z.object({
+  format: z.enum(["csv", "m3u"]),
+});
+
 // --- Consents (spec §13.13) ---------------------------------------------------
 
 export const consentPurposeSchema = z.enum([

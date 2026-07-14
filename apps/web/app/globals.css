@@ -308,6 +308,23 @@ button:disabled {
 .novelty-unknown { color: var(--rz-novelty-unknown); border-style: dashed; }
 .novelty-known { color: var(--rz-novelty-known); }
 
+.feedback {
+  margin-top: var(--rz-spacing-3);
+  border-top: 1px solid var(--rz-neutral-100);
+  padding-top: var(--rz-spacing-3);
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: var(--rz-spacing-2);
+  flex-wrap: wrap;
+}
+
+.feedback-buttons button {
+  font-size: var(--rz-typography-scale-sm);
+  padding: var(--rz-spacing-2) var(--rz-spacing-3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

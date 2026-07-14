@@ -390,6 +390,64 @@ export const knownRecordings = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.recordingId] })],
 );
 
+export const feedbackEvents = pgTable("feedback_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  exposureId: uuid("exposure_id"),
+  recommendationRunId: uuid("recommendation_run_id"),
+  primaryResponse: text("primary_response").notNull(),
+  reasonCodes: text("reason_codes").array().notNull().default([]),
+  newnessResponse: text("newness_response"),
+  contextId: uuid("context_id").references(() => contextProfiles.id),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  supersedesEventId: uuid("supersedes_event_id"),
+  clientEventId: text("client_event_id").notNull(),
+  schemaVersion: integer("schema_version").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const playlists = pgTable("playlists", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  contextId: uuid("context_id").references(() => contextProfiles.id),
+  sourceRunId: uuid("source_run_id"),
+  status: text("status").notNull().default("active"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const playlistItems = pgTable("playlist_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  playlistId: uuid("playlist_id")
+    .notNull()
+    .references(() => playlists.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  position: integer("position").notNull(),
+  sourceRecommendationItemId: uuid("source_recommendation_item_id"),
+  addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+});
+
+export const analyticsEvents = pgTable("analytics_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id"),
+  eventName: text("event_name").notNull(),
+  properties: jsonb("properties").notNull().default({}),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const recordingFeatures = pgTable("recording_features", {
   id: uuid("id").primaryKey().defaultRandom(),
   recordingId: uuid("recording_id")

@@ -24,6 +24,7 @@ export async function GET(request: Request, { params }: RouteParams): Promise<Re
     const base = {
       id: run.id,
       status: run.status,
+      contextId: run.contextId,
       requestedCount: run.requestedCount,
       discoveryLevel: run.discoveryLevel,
       degradedProviders: run.degradedProviders,

@@ -26,6 +26,7 @@ export function applyHardFilters(
   snapshot: CatalogSnapshot,
   posterior: TastePosterior,
   request: EngineRequest,
+  dislikedRecordingIds: ReadonlySet<string> = new Set(),
 ): FilterResult {
   const byId = new Map(snapshot.recordings.map((recording) => [recording.id, recording]));
   const exclude = new Set(request.excludeRecordingIds);
@@ -46,6 +47,9 @@ export function applyHardFilters(
         reasons.push("hard_blocked_artist");
       }
       if (exclude.has(recording.id)) reasons.push("explicitly_excluded");
+      // §10.5 #6: an explicitly disliked recording stays out until the
+      // dislike is superseded by a revision.
+      if (dislikedRecordingIds.has(recording.id)) reasons.push("active_dislike");
       if (preserved.has(recording.id)) reasons.push("already_preserved_in_playlist");
       if (seenRecordingIds.has(recording.id)) reasons.push("duplicate");
 

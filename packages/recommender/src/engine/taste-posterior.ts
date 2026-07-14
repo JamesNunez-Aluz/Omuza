@@ -1,7 +1,7 @@
 import { isRecommendationEligible } from "@resonance/domain";
 import type { FeatureRow } from "@resonance/domain";
 
-import type { CatalogSnapshot, ProfileSeed, SnapshotRecording } from "./types.js";
+import type { CatalogSnapshot, FeedbackFact, ProfileSeed, SnapshotRecording } from "./types.js";
 
 /**
  * Taste posterior from explicit evidence (spec §10.6). Seeds contribute
@@ -38,6 +38,8 @@ export interface ArtistAffinity {
 export interface TastePosterior {
   features: Map<string, FeatureAffinity>;
   artists: Map<string, ArtistAffinity>;
+  /** Recording-level affinity from first-party feedback. */
+  recordings: Map<string, { affinity: number; confidence: number }>;
   seedArtistIds: Set<string>;
   seedRecordingIds: Set<string>;
   hardBlockedArtistIds: Set<string>;
@@ -68,6 +70,7 @@ function eligibleFeatureKeys(recording: SnapshotRecording): { key: string; value
 export function computeTastePosterior(
   snapshot: CatalogSnapshot,
   seeds: readonly ProfileSeed[],
+  feedbackFacts: readonly FeedbackFact[] = [],
 ): TastePosterior {
   const byArtist = new Map<string, SnapshotRecording[]>();
   const byId = new Map<string, SnapshotRecording>();
@@ -83,6 +86,7 @@ export function computeTastePosterior(
   const posterior: TastePosterior = {
     features: new Map(),
     artists: new Map(),
+    recordings: new Map(),
     seedArtistIds: new Set(),
     seedRecordingIds: new Set(),
     hardBlockedArtistIds: new Set(),
@@ -161,5 +165,67 @@ export function computeTastePosterior(
     });
   }
 
+  mergeFeedbackFacts(posterior, feedbackFacts);
   return posterior;
+}
+
+/**
+ * Blend first-party feedback facts into the posterior (spec §10.6 global/
+ * context layers). Context-scoped facts blend with global ones by their own
+ * confidence: effective = ctxConf·ctx + (1−ctxConf)·global. Feedback and
+ * seed evidence combine confidence-weighted, never overwriting either side.
+ */
+function mergeFeedbackFacts(posterior: TastePosterior, facts: readonly FeedbackFact[]): void {
+  // Collapse context layers per key first.
+  const byKey = new Map<string, { global?: FeedbackFact; context?: FeedbackFact }>();
+  for (const fact of facts) {
+    const entry = byKey.get(fact.key) ?? {};
+    if (fact.contextId === null) entry.global = fact;
+    else if (!entry.context || fact.confidence > entry.context.confidence) entry.context = fact;
+    byKey.set(fact.key, entry);
+  }
+
+  for (const [key, layers] of byKey) {
+    const globalValue = layers.global?.value ?? 0;
+    const globalConf = layers.global?.confidence ?? 0;
+    const ctxConf = layers.context?.confidence ?? 0;
+    const value = ctxConf * (layers.context?.value ?? 0) + (1 - ctxConf) * globalValue;
+    const confidence = 1 - (1 - globalConf) * (1 - ctxConf);
+    if (confidence === 0) continue;
+
+    if (key.startsWith("artist:")) {
+      const artistId = key.slice("artist:".length);
+      const existing = posterior.artists.get(artistId);
+      if (existing) {
+        const totalConf = existing.confidence + confidence;
+        posterior.artists.set(artistId, {
+          affinity: (existing.affinity * existing.confidence + value * confidence) / totalConf,
+          confidence: 1 - (1 - existing.confidence) * (1 - confidence),
+          seedIds: existing.seedIds,
+        });
+      } else {
+        posterior.artists.set(artistId, { affinity: value, confidence, seedIds: [] });
+      }
+    } else if (key.startsWith("recording:")) {
+      posterior.recordings.set(key.slice("recording:".length), { affinity: value, confidence });
+    } else {
+      const existing = posterior.features.get(key);
+      if (existing) {
+        const totalConf = existing.confidence + confidence;
+        posterior.features.set(key, {
+          affinity: (existing.affinity * existing.confidence + value * confidence) / totalConf,
+          confidence: 1 - (1 - existing.confidence) * (1 - confidence),
+          positiveMass: existing.positiveMass,
+          negativeMass: existing.negativeMass,
+        });
+      } else {
+        posterior.features.set(key, {
+          affinity: value,
+          confidence,
+          positiveMass: 0,
+          negativeMass: 0,
+        });
+      }
+    }
+  }
 }

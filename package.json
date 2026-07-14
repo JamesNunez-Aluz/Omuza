@@ -22,6 +22,7 @@
     "policy:check": "tsx scripts/verify-policy-boundaries.ts && tsx scripts/verify-feature-provenance.ts",
     "db:migrate": "pnpm --filter @resonance/db migrate",
     "db:seed": "tsx scripts/seed-demo-data.ts",
+    "report:funnel": "tsx scripts/funnel-report.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm policy:check"
   },
   "devDependencies": {

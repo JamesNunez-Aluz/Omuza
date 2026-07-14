@@ -1,12 +1,19 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "../client.js";
 import {
+  analyticsEvents,
   auditEvents,
   authTokens,
   contextProfiles,
+  exposures,
+  feedbackEvents,
+  idempotencyKeys,
+  knownRecordings,
+  playlists,
   preferenceEvidence,
   privacyRequests,
+  recommendationRuns,
   sessions,
   userPreferences,
   userSeedItems,
@@ -14,6 +21,8 @@ import {
 } from "../schema.js";
 import { listConsentRecords } from "./consents.js";
 import { listContextProfiles } from "./contexts.js";
+import { listUserFeedbackEvents } from "./feedback.js";
+import { listPlaylistItems, listPlaylists } from "./playlists.js";
 import { listPreferences } from "./preferences.js";
 import { listActiveSeeds } from "./seeds.js";
 
@@ -100,13 +109,28 @@ export async function buildUserExport(db: Database, userId: string): Promise<Rec
     .from(users)
     .where(eq(users.id, userId));
 
+  const userPlaylists = await listPlaylists(db, userId);
+  const playlistsWithItems = [];
+  for (const playlist of userPlaylists) {
+    playlistsWithItems.push({
+      ...playlist,
+      items: await listPlaylistItems(db, playlist.id),
+    });
+  }
+
   return {
-    exportVersion: 1,
+    exportVersion: 2,
     generatedFor: userRows[0] ?? null,
     consents: await listConsentRecords(db, userId),
     seeds: await listActiveSeeds(db, userId),
     contexts: await listContextProfiles(db, userId),
     preferences: await listPreferences(db, userId),
+    feedbackEvents: await listUserFeedbackEvents(db, userId),
+    knownRecordings: await db
+      .select()
+      .from(knownRecordings)
+      .where(eq(knownRecordings.userId, userId)),
+    playlists: playlistsWithItems,
   };
 }
 
@@ -136,6 +160,18 @@ export async function performAccountDeletion(db: Database, userId: string): Prom
       );
     await tx.delete(userPreferences).where(eq(userPreferences.userId, userId));
     await tx.delete(userSeedItems).where(eq(userSeedItems.userId, userId));
+
+    // Feedback is append-only; the right to erasure uses the trigger's
+    // transaction-local purge carve-out (migration 0003).
+    await tx.execute(sql`select set_config('resonance.allow_feedback_purge', 'on', true)`);
+    await tx.delete(feedbackEvents).where(eq(feedbackEvents.userId, userId));
+
+    await tx.delete(exposures).where(eq(exposures.userId, userId));
+    await tx.delete(knownRecordings).where(eq(knownRecordings.userId, userId));
+    await tx.delete(playlists).where(eq(playlists.userId, userId)); // items cascade
+    await tx.delete(recommendationRuns).where(eq(recommendationRuns.userId, userId)); // trace cascades
+    await tx.delete(analyticsEvents).where(eq(analyticsEvents.userId, userId));
+    await tx.delete(idempotencyKeys).where(eq(idempotencyKeys.userId, userId));
     await tx.delete(contextProfiles).where(eq(contextProfiles.userId, userId));
     await tx.delete(sessions).where(eq(sessions.userId, userId));
     if (email) {

@@ -4,3 +4,4 @@ export * from "./eligibility.js";
 export * from "./identity.js";
 export * from "./consent.js";
 export * from "./taste.js";
+export * from "./feedback.js";

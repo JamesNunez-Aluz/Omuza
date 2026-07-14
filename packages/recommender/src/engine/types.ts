@@ -39,9 +39,22 @@ export interface ProfileSeed {
   contextId: string | null;
 }
 
+/** A preference fact derived from first-party feedback (recomputed, never mutated). */
+export interface FeedbackFact {
+  contextId: string | null;
+  /** "artist:{id}", "recording:{id}", or an eligible feature key. */
+  key: string;
+  value: number; // -1..1
+  confidence: number; // 0..1
+}
+
 export interface TasteProfileSnapshot {
   version: string;
   seeds: ProfileSeed[];
+  /** Facts from user_preferences origin=first_party_feedback (M3+). */
+  feedbackFacts?: FeedbackFact[];
+  /** Recordings with an effective (non-superseded) dislike: hard-filtered (§10.5 #6). */
+  dislikedRecordingIds?: string[];
 }
 
 export interface RunContextSettings {
@@ -131,6 +144,6 @@ export interface EngineResult {
   degradedProviders: string[];
 }
 
-export const RANKER_VERSION = "ranker@0.2.0";
+export const RANKER_VERSION = "ranker@0.3.0";
 export const SELECTOR_VERSION = "selector-mmr@0.1.0";
 export const EXPLAINER_VERSION = "explainer-template@0.1.0";

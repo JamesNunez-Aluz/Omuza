@@ -24,7 +24,7 @@ export interface PingJobData {
 
 export interface TasteRecomputeJob {
   userId: string;
-  reason: "seed_added" | "seed_updated" | "seed_removed" | "onboarding_completed";
+  reason: "seed_added" | "seed_updated" | "seed_removed" | "onboarding_completed" | "feedback_received";
 }
 
 export interface PrivacyJob {

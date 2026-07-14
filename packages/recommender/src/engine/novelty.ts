@@ -46,18 +46,26 @@ export function estimateNovelty(
 
   const priorRecordingEvidence =
     exposed.has(recording.id) || posterior.seedRecordingIds.has(recording.id);
-  const priorArtistEvidence =
-    posterior.artists.has(recording.primaryArtistId) ||
-    posterior.seedArtistIds.has(recording.primaryArtistId);
   const inSeedNeighborhood = posterior.seedArtistIds.has(recording.primaryArtistId);
+
+  // Artist evidence is graded, not binary: a seeded artist is fully familiar,
+  // while one feedback event on one recording implies only partial knowledge
+  // of the artist's catalog (honesty over precision, ADR 0010).
+  const artistAffinity = posterior.artists.get(recording.primaryArtistId);
+  const artistFamiliarity = inSeedNeighborhood
+    ? 1
+    : artistAffinity
+      ? Math.min(Math.abs(artistAffinity.affinity) * artistAffinity.confidence * 2, 1)
+      : 0;
 
   const availableWeight =
     WEIGHTS.noPriorRecordingEvidence + WEIGHTS.noPriorArtistEvidence + WEIGHTS.notInSeedNeighborhood;
 
   const rawScore =
     WEIGHTS.noPriorRecordingEvidence * (priorRecordingEvidence ? 0 : 1) +
-    WEIGHTS.noPriorArtistEvidence * (priorArtistEvidence ? 0 : 1) +
+    WEIGHTS.noPriorArtistEvidence * (1 - artistFamiliarity) +
     WEIGHTS.notInSeedNeighborhood * (inSeedNeighborhood ? 0 : 1);
+  const priorArtistEvidence = artistFamiliarity > 0.5;
 
   const probability = rawScore / availableWeight;
   // Confidence is capped by component availability (0.70 of the full model).

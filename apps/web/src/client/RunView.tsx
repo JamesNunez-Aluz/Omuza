@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "./api";
+import { FeedbackBar } from "./FeedbackBar";
+import type { FeedbackState } from "./FeedbackBar";
+import { SavePlaylistButton } from "./SavePlaylistButton";
 
 interface RunItem {
   recommendationItemId: string;
@@ -21,11 +24,20 @@ interface RunItem {
 interface RunResponse {
   id: string;
   status: string;
+  contextId: string | null;
   requestedCount: number;
   degradedProviders: string[];
   constraintRelaxations: string[];
   items?: RunItem[];
   failure?: { code: string; message: string };
+}
+
+interface FeedbackEventDto {
+  id: string;
+  recordingId: string;
+  primaryResponse: string;
+  newnessResponse: string | null;
+  supersedesEventId: string | null;
 }
 
 /** Novelty badge copy (spec §5.3) — icon + label so meaning never rests on color. */
@@ -41,6 +53,7 @@ const POLL_INTERVAL_MS = 1500;
 
 export function RunView({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunResponse | null>(null);
+  const [feedbackByRecording, setFeedbackByRecording] = useState<Map<string, FeedbackState>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -53,6 +66,22 @@ export function RunView({ runId }: { runId: string }) {
         setRun(response);
         if (response.status === "queued" || response.status === "generating") {
           timer.current = setTimeout(poll, POLL_INTERVAL_MS);
+        } else if (response.status === "completed" || response.status === "degraded") {
+          const existing = await api<{ items: FeedbackEventDto[] }>(`/api/v1/feedback?runId=${runId}`);
+          if (cancelled) return;
+          const superseded = new Set(
+            existing.items.flatMap((event) => (event.supersedesEventId ? [event.supersedesEventId] : [])),
+          );
+          const map = new Map<string, FeedbackState>();
+          for (const event of existing.items) {
+            if (superseded.has(event.id)) continue;
+            map.set(event.recordingId, {
+              eventId: event.id,
+              primaryResponse: event.primaryResponse,
+              newnessResponse: event.newnessResponse,
+            });
+          }
+          setFeedbackByRecording(map);
         }
       } catch {
         if (!cancelled) setError("Could not load this playlist run.");
@@ -130,12 +159,19 @@ export function RunView({ runId }: { runId: string }) {
                 {item.recording.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
               </p>
               {item.explanation ? <p className="track-why">{item.explanation.text}</p> : null}
+              <FeedbackBar
+                recommendationItemId={item.recommendationItemId}
+                contextId={run.contextId}
+                initial={feedbackByRecording.get(item.recording.id) ?? null}
+              />
             </li>
           );
         })}
       </ol>
+      <SavePlaylistButton runId={run.id} contextId={run.contextId} />
       <p>
-        <Link href="/home">Back to your profile</Link>
+        <Link href="/home">Back to your profile</Link> ·{" "}
+        <Link href="/playlists">Your saved playlists</Link>
       </p>
     </div>
   );

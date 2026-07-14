@@ -176,6 +176,9 @@ importers:
       pg-boss:
         specifier: ^10.1.0
         version: 10.4.2
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       '@types/pg':
         specifier: ^8.11.0

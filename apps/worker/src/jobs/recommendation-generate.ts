@@ -5,11 +5,19 @@ import {
   getContextProfile,
   getRunById,
   listActiveSeeds,
+  listPreferences,
   loadCatalogSnapshotRecordings,
+  loadEnrichedFeedbackEvents,
   loadUserHistory,
   markRunFailed,
   markRunGenerating,
+  recordAnalyticsEvent,
 } from "@resonance/db";
+import {
+  activeDislikedRecordingIds,
+  effectiveFeedbackEvents,
+} from "@resonance/domain";
+import type { PrimaryResponse, RawFeedbackEvent } from "@resonance/domain";
 import type { Database, PersistedCandidate, PersistedItem } from "@resonance/db";
 import { generateRecommendations, RANKER_VERSION, SELECTOR_VERSION } from "@resonance/recommender";
 import type {
@@ -72,12 +80,29 @@ export async function runRecommendationJob(
     const snapshotRecordings = await loadCatalogSnapshotRecordings(db);
     const history = await loadUserHistory(db, run.userId);
 
+    // Feedback-derived facts (recomputed by taste.recompute) + active dislikes.
+    const feedbackFacts = (await listPreferences(db, run.userId))
+      .filter((preference) => preference.origin === "first_party_feedback")
+      .map((preference) => ({
+        contextId: preference.contextId,
+        key: preference.key,
+        value: Number(preference.preferenceValue),
+        confidence: Number(preference.confidence),
+      }));
+    const rawEvents = (await loadEnrichedFeedbackEvents(db, run.userId)).map((event) => ({
+      ...event,
+      primaryResponse: event.primaryResponse as PrimaryResponse,
+    })) as RawFeedbackEvent[];
+    const dislikedRecordingIds = activeDislikedRecordingIds(effectiveFeedbackEvents(rawEvents));
+
     const profile: TasteProfileSnapshot = {
       version: `profile@${createHash("sha256")
-        .update(JSON.stringify(profileSeeds))
+        .update(JSON.stringify({ profileSeeds, feedbackFacts, dislikedRecordingIds }))
         .digest("hex")
         .slice(0, 12)}`,
       seeds: profileSeeds,
+      feedbackFacts,
+      dislikedRecordingIds,
     };
 
     // Strategy-B external providers: failures degrade the run, never fail it.
@@ -208,6 +233,12 @@ export async function runRecommendationJob(
       items,
     });
 
+    await recordAnalyticsEvent(db, run.userId, "recommendation_run_completed", {
+      runId,
+      status,
+      itemCount: items.length,
+    });
+
     logger.info(
       {
         runId,
@@ -227,5 +258,10 @@ export async function runRecommendationJob(
       "internal_error",
       "Something went wrong while generating. Your profile is unaffected — try again.",
     );
+    await recordAnalyticsEvent(db, run.userId, "recommendation_run_completed", {
+      runId,
+      status: "failed",
+      itemCount: 0,
+    }).catch(() => undefined);
   }
 }

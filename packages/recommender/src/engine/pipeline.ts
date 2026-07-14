@@ -36,7 +36,7 @@ export function generateRecommendations(
   externalBatches: ProviderBatchResult[] = [],
   degradedProviders: string[] = [],
 ): EngineResult {
-  const posterior = computeTastePosterior(snapshot, profile.seeds);
+  const posterior = computeTastePosterior(snapshot, profile.seeds, profile.feedbackFacts ?? []);
   const maxCandidates = request.maxCandidates ?? 400;
   const budgets = providerBudgets(
     request.discoveryLevel,
@@ -54,7 +54,13 @@ export function generateRecommendations(
   ];
 
   const deduped = dedupeCandidates(batches);
-  const filtered = applyHardFilters(deduped, snapshot, posterior, request);
+  const filtered = applyHardFilters(
+    deduped,
+    snapshot,
+    posterior,
+    request,
+    new Set(profile.dislikedRecordingIds ?? []),
+  );
 
   const scored = filtered.eligible.map((entry) =>
     scoreCandidate(entry, posterior, history, request),

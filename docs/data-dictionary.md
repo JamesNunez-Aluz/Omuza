@@ -62,6 +62,26 @@ destination-service fields — enforced by `pnpm policy:check` (rule P5).
   confirmed_new, ledger_known, unknown) with confidence and source;
   **CHECK: source ≠ 'spotify'**.
 
+## Feedback, playlists, analytics (Milestone 3)
+
+- **`feedback_events`** — **append-only** (trigger; UPDATE always rejected,
+  DELETE only via the privacy-purge carve-out `resonance.allow_feedback_purge`):
+  primary_response (love/like/neutral/dislike/not_now/already_knew),
+  reason_codes[], newness_response, context_id, `supersedes_event_id`
+  (revision chains — only terminal events carry weight), unique
+  (user_id, client_event_id) for idempotency. Derived facts live in
+  `user_preferences` origin `first_party_feedback`
+  (namespaces feedback_entity / feedback_feature, `feedback-derivation@1`)
+  and are recomputed, never mutated (ADR 0009).
+- **`playlists`** — name, description, context/run lineage, status,
+  `version` (optimistic concurrency).
+- **`playlist_items`** — position, recording FK,
+  `source_recommendation_item_id` lineage, soft delete via `removed_at`.
+- **`analytics_events`** — semantic event names with strictly-typed minimal
+  properties (Zod-validated, unknown keys rejected). No free text, emails,
+  or provider payloads by construction; verified by tests. Powers
+  `pnpm report:funnel`.
+
 ## Privacy and audit
 
 - **`privacy_requests`** — kind export|delete, status queued → processing →

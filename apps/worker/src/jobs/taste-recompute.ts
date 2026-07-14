@@ -1,13 +1,25 @@
-import { listActiveSeeds, replaceDerivedPreferences } from "@resonance/db";
+import { listActiveSeeds, loadEnrichedFeedbackEvents, replaceDerivedPreferences } from "@resonance/db";
 import type { Database } from "@resonance/db";
-import { SEED_DERIVATION_VERSION, deriveExplicitPreferences } from "@resonance/domain";
-import type { ActiveSeed, SeedEntityType, SeedSentiment } from "@resonance/domain";
+import {
+  FEEDBACK_DERIVATION_VERSION,
+  SEED_DERIVATION_VERSION,
+  deriveExplicitPreferences,
+  deriveFeedbackPreferences,
+  effectiveFeedbackEvents,
+} from "@resonance/domain";
+import type {
+  ActiveSeed,
+  PrimaryResponse,
+  RawFeedbackEvent,
+  SeedEntityType,
+  SeedSentiment,
+} from "@resonance/domain";
 import type { Logger } from "@resonance/observability";
 
 /**
- * Recompute the explicit seed-derived preference slice for a user.
- * Idempotent: derivation is a pure function of the active seeds, so retries
- * and duplicate jobs converge on the same state.
+ * Recompute the user's derived preference slices — explicit (seeds) and
+ * first-party feedback — from append-only evidence. Idempotent: both
+ * derivations are pure functions, so retries converge on the same state.
  */
 export async function recomputeTasteProfile(
   db: Database,
@@ -46,9 +58,47 @@ export async function recomputeTasteProfile(
     })),
   );
 
+  // Feedback slice: recompute entity + feature facts from effective events.
+  const rawEvents = (await loadEnrichedFeedbackEvents(db, userId)).map((event) => ({
+    ...event,
+    primaryResponse: event.primaryResponse as PrimaryResponse,
+  })) as RawFeedbackEvent[];
+  const facts = deriveFeedbackPreferences(effectiveFeedbackEvents(rawEvents));
+  let feedbackWritten = 0;
+  for (const namespace of ["feedback_entity", "feedback_feature"] as const) {
+    feedbackWritten += await replaceDerivedPreferences(
+      db,
+      userId,
+      "first_party_feedback",
+      namespace,
+      facts
+        .filter((fact) => fact.namespace === namespace)
+        .map((fact) => ({
+          contextId: fact.contextId,
+          namespace: fact.namespace,
+          key: fact.key,
+          preferenceValue: fact.preferenceValue,
+          confidence: fact.confidence,
+          origin: fact.origin,
+          modelVersion: fact.modelVersion,
+          evidence: fact.evidence.map((entry) => ({
+            eventType: entry.eventType,
+            sourceEntityId: entry.sourceEntityId,
+            weight: entry.weight,
+          })),
+        })),
+    );
+  }
+
   logger.info(
-    { userId, seeds: active.length, preferences: written, modelVersion: SEED_DERIVATION_VERSION },
+    {
+      userId,
+      seeds: active.length,
+      preferences: written,
+      feedbackFacts: feedbackWritten,
+      modelVersions: [SEED_DERIVATION_VERSION, FEEDBACK_DERIVATION_VERSION],
+    },
     "taste profile recomputed",
   );
-  return written;
+  return written + feedbackWritten;
 }

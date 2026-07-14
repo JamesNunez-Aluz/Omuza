@@ -56,8 +56,19 @@ export function scoreCandidate(
     ? artistAffinity.affinity * artistAffinity.confidence * (artistAffinity.affinity > 0 ? 1 - 0.5 * D : 1)
     : 0;
 
+  // Recording-level first-party feedback affinity (M3+).
+  const recordingAffinity = posterior.recordings.get(recording.id);
+  const recordingTerm = recordingAffinity ? recordingAffinity.affinity * recordingAffinity.confidence : 0;
+  if (recordingAffinity && recordingTerm > 0.2) {
+    fitEvidence.push({
+      type: "explicit_preference",
+      label: "You responded positively to this recording before",
+      refId: `recording:${recording.id}`,
+    });
+  }
+
   const rawFeatureFit = importanceSum > 0 ? contributionSum / importanceSum : 0;
-  const rawFit = 0.65 * rawFeatureFit + 0.35 * artistTerm;
+  const rawFit = 0.55 * rawFeatureFit + 0.3 * artistTerm + 0.15 * recordingTerm;
   const fitScore = clamp((rawFit + 1) / 2, 0, 1);
 
   const metadataConfidence = Math.min(recording.features.length / EXPECTED_FEATURE_COVERAGE, 1);
@@ -86,10 +97,12 @@ export function scoreCandidate(
 
   // --- Penalties --------------------------------------------------------------
   const fatiguePenalty = posterior.fatiguedArtistIds.has(recording.primaryArtistId) ? 1 : 0;
-  const aversionRisk =
+  const artistAversion =
     artistAffinity && artistAffinity.affinity < 0
-      ? Math.min(Math.abs(artistAffinity.affinity) * artistAffinity.confidence, 1)
+      ? Math.abs(artistAffinity.affinity) * artistAffinity.confidence
       : 0;
+  const recordingAversion = recordingTerm < 0 ? Math.abs(recordingTerm) : 0;
+  const aversionRisk = Math.min(Math.max(artistAversion, recordingAversion), 1);
   const metadataUncertainty = 1 - metadataConfidence;
 
   // --- Final score (spec §10.12) ----------------------------------------------

@@ -6,6 +6,7 @@ import {
   hashRequestBody,
   insertSeeds,
   listActiveSeeds,
+  recordAnalyticsEvent,
   recordingExists,
   storeIdempotentResponse,
 } from "@resonance/db";
@@ -87,6 +88,12 @@ export async function POST(request: Request): Promise<Response> {
       })),
     );
     await ctx.enqueue(QUEUES.tasteRecompute, { userId: user.id, reason: "seed_added" });
+    for (const item of body.items) {
+      await recordAnalyticsEvent(ctx.db, user.id, "seed_added", {
+        entityType: item.entityType,
+        sentiment: item.sentiment,
+      });
+    }
 
     const responseBody = { items: inserted };
     if (idempotencyKey) {

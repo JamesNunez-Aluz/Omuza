@@ -55,6 +55,24 @@ decision trace (all candidates, rejection reasons, score breakdowns,
 ranker/selector versions, random seed) is persisted server-side for
 reproducibility and offline evaluation.
 
+## Feedback (spec §13.8)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/feedback` | POST | `{clientEventId, recommendationItemId, primaryResponse (love/like/neutral/dislike/not_now/already_knew), reasonCodes[], newnessResponse?, contextId?, supersedesEventId?}`. The item must have been exposed to this user (422 otherwise). Duplicate clientEventId replays the original (200). Revisions supersede — append-only, never edited. Newness answers update the known-recording ledger only, never taste. Triggers profile recomputation |
+| `/api/v1/feedback?runId=` | GET | The user's feedback events for a run |
+
+## Playlists & file export (spec §13.9–13.10)
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/playlists` | GET / POST | POST saves a finished run: `{name, description?, sourceRunId, contextId?}`; items carry lineage to run items |
+| `/api/v1/playlists/{id}` | GET / PATCH / DELETE | PATCH uses optimistic concurrency: body carries expected `version`; stale → 409 |
+| `/api/v1/playlists/{id}/items/{itemId}` | DELETE | Soft remove |
+| `/api/v1/playlists/{id}/items/reorder` | PATCH | `{orderedItemIds}` — must match current items exactly |
+| `/api/v1/playlists/{id}/rebuild` | POST | `{runId, preserveRecordingIds}` — keeps preserved tracks, replaces the rest with the new run's items (lineage retained) |
+| `/api/v1/playlists/{id}/exports/file` | POST | `{format: "csv"\|"m3u"}` → file download. Works with no destination connection. CSV columns per spec; M3U uses MusicBrainz permalinks as service-neutral references |
+
 ## Context profiles
 
 `POST/GET /api/v1/contexts`, `GET/PATCH/DELETE /api/v1/contexts/{contextId}` —

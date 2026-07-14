@@ -6,6 +6,7 @@ import {
   findIdempotentResponse,
   getContextProfile,
   hashRequestBody,
+  recordAnalyticsEvent,
   storeIdempotentResponse,
 } from "@resonance/db";
 import { createRecommendationRunSchema } from "@resonance/validation";
@@ -56,6 +57,7 @@ export async function POST(request: Request): Promise<Response> {
       randomSeed: randomBytes(16).toString("hex"),
     });
     await ctx.enqueue(QUEUES.recommendationGenerate, { runId: run.id });
+    await recordAnalyticsEvent(ctx.db, user.id, "recommendation_run_requested", { discoveryLevel });
 
     const responseBody = {
       runId: run.id,
