@@ -3,6 +3,7 @@ import { effectiveConsent } from "@resonance/domain";
 import type { ConsentState } from "@resonance/domain";
 
 import { withAuth } from "@/server/guard";
+import { isPilotUser } from "@/server/spotify";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,10 @@ export async function GET(request: Request): Promise<Response> {
         onboardingCompleted: user.onboardingCompletedAt !== null,
       },
       consents: [...effective.values()],
+      features: {
+        // True only for pilot users with the kill switch on (spec §12.2).
+        spotifyExport: isPilotUser(ctx.config, user),
+      },
     });
   });
 }

@@ -27,7 +27,7 @@ security-critical TODO may be unowned (spec §21 M0 acceptance).
 | TM-4 | XSS / clickjacking | CSP, frame-ancestors none, nosniff (**baseline, M0**); nonce-based CSP before auth ships (M1) | Engineering |
 | TM-5 | Credential stuffing / session fixation | Passwordless email login: hashed single-use 15-min tokens, per-email rate limit, enumeration-resistant responses; sessions hashed, rotated past half-life, revocable; CSRF origin checks (**in place, M1** — tested in apps/web/integration) | Engineering |
 | TM-6 | IDOR on user resources | Every repository query is user-scoped; foreign ids answer 404; horizontal-escalation tests per resource (**in place, M1**) | Engineering |
-| TM-7 | OAuth token theft (Spotify) | Encrypted at rest, never logged, purge on disconnect (**open — M4**, ADR 0012) | Engineering |
+| TM-7 | OAuth token theft (Spotify) | AES-256-GCM app-layer envelope encryption with key versioning; decryption confined to the destination package's two allowlisted call sites; purge on disconnect and account deletion; redaction as defense-in-depth (**in place, M4** — ADR 0012, tested) | Engineering |
 | TM-8 | Provider abuse/outage cascades | MusicBrainz: fixed base URL, 1 req/s limiter, timeout, size limit, retry with Retry-After, schema validation, kill switch, contract tests for 429/timeout/malformed (**in place, M1**); degraded search is surfaced honestly | Engineering |
 | TM-11 | Weak step-up on account deletion | Confirmation phrase today; full re-authentication step-up before public beta (**open — M5/M6**) | Engineering |
 | TM-12 | Export payload retention | privacy_requests.payload holds exports indefinitely; retention/cleanup job (**open — M5**) | Engineering |

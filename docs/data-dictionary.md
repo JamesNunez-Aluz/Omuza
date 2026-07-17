@@ -82,6 +82,27 @@ destination-service fields — enforced by `pnpm policy:check` (rule P5).
   or provider payloads by construction; verified by tests. Powers
   `pnpm report:funnel`.
 
+## Destination zone (Milestone 4 — Zone C, export only)
+
+Nothing in this section may ever be joined into recommendation features,
+taste tables, analytics of taste, or training data (spec §6.2; policy gates
+R1–R6/P4–P7). Deleted on disconnect and on account deletion.
+
+- **`service_connections`** — one active per (user, service); status
+  active/expired/revoked/error, exact granted `scope_set`,
+  `reauthorization_due_at` reminder.
+- **`encrypted_oauth_credentials`** — AES-256-GCM ciphertext + nonce + auth
+  tag + `key_version` (ADR 0012); cascade-deleted with the connection.
+- **`oauth_transactions`** — one-time OAuth state (hashed) + encrypted PKCE
+  verifier; 10-minute expiry; purged by `pnpm purge:provider-data`.
+- **`exports`** — §12.8 state machine with persisted
+  `destination_playlist_id` (retries never create a second playlist),
+  supersede lineage, per-batch counts, unique
+  (user, destination, idempotency_key).
+- **`export_item_resolutions`** — temporary match cache: destination ids,
+  method, confidence, display fields for review, **mandatory `expires_at`**
+  (24h), purged on schedule and expired on disconnect.
+
 ## Privacy and audit
 
 - **`privacy_requests`** — kind export|delete, status queued → processing →

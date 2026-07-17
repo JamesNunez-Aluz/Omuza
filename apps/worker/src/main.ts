@@ -4,6 +4,7 @@ import type {
   PingJobData,
   PrivacyJob,
   RecommendationGenerateJob,
+  SpotifyExportJob,
   TasteRecomputeJob,
 } from "@resonance/db";
 import { createLogger } from "@resonance/observability";
@@ -11,6 +12,7 @@ import { createLogger } from "@resonance/observability";
 import { startHealthServer } from "./health.js";
 import { processDeleteRequest, processExportRequest } from "./jobs/privacy.js";
 import { runRecommendationJob } from "./jobs/recommendation-generate.js";
+import { runSpotifyExportJob } from "./jobs/spotify-export.js";
 import { recomputeTasteProfile } from "./jobs/taste-recompute.js";
 
 const config = loadConfig();
@@ -53,6 +55,13 @@ await boss.work<PrivacyJob>(QUEUES.privacyDelete, async (jobs) => {
 await boss.work<RecommendationGenerateJob>(QUEUES.recommendationGenerate, async (jobs) => {
   for (const job of jobs) {
     await runRecommendationJob(db, logger, job.data.runId);
+  }
+});
+
+// Destination export (Zone C): tokens are decrypted only inside this job.
+await boss.work<SpotifyExportJob>(QUEUES.spotifyExport, async (jobs) => {
+  for (const job of jobs) {
+    await runSpotifyExportJob(db, logger, config, job.data.exportId);
   }
 });
 

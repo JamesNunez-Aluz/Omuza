@@ -24,6 +24,8 @@ export interface TestHarness {
   enqueued: { queue: string; data: object }[];
   /** Swap the MusicBrainz fetch behavior per test. */
   setMusicbrainzFetch: (fetchFn: typeof fetch) => void;
+  /** Replace config fields (e.g. enable the Spotify pilot) for this harness. */
+  overrideConfig: (patch: Partial<AppConfig>) => void;
   close: () => Promise<void>;
 }
 
@@ -43,6 +45,14 @@ const testConfig: AppConfig = {
   smtpHost: "localhost",
   smtpPort: 1025,
   emailFrom: "login@resonance.local",
+  spotifyClientId: "",
+  spotifyClientSecret: "",
+  spotifyRedirectUri: "",
+  spotifyAccountsBaseUrl: "https://accounts.spotify.example.test",
+  spotifyApiBaseUrl: "https://api.spotify.example.test",
+  spotifyPilotAllowlist: [],
+  tokenEncryptionKeyB64: "",
+  tokenEncryptionKeyVersion: "v1",
 };
 
 export async function createHarness(): Promise<TestHarness> {
@@ -83,6 +93,10 @@ export async function createHarness(): Promise<TestHarness> {
     enqueued,
     setMusicbrainzFetch: (fetchFn) => {
       currentFetch = fetchFn;
+    },
+    overrideConfig: (patch) => {
+      ctx.config = { ...ctx.config, ...patch };
+      setServerContext(ctx);
     },
     close: async () => {
       setServerContext(undefined);

@@ -6,13 +6,15 @@
  * recommender, taste, analytics, or training code.
  */
 
-/** Raw shapes stay internal. Placeholder until Milestone 4 implements OAuth/export. */
+/** Raw provider search shape, normalized. Never exported beyond this package. */
 export interface SpotifyTrackSearchResult {
   uri: string;
   id: string;
   name: string;
   artistNames: string[];
   durationMs: number;
+  isrc?: string;
+  releaseDate?: string;
 }
 
 /**

@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 
 import { ApiError, api } from "./api";
 
+import { SpotifyConnections } from "./SpotifyConnections";
+
 interface MeResponse {
   user: { displayName: string | null; locale: string; timeZone: string };
   consents: { purpose: string; status: string; occurredAt: string }[];
+  features?: { spotifyExport: boolean };
 }
 
 const CONSENT_LABELS: Record<string, string> = {
@@ -146,6 +149,8 @@ export function SettingsPanel() {
           })}
         </ul>
       </section>
+
+      {me.features?.spotifyExport ? <SpotifyConnections /> : null}
 
       <section className="card stack" aria-labelledby="privacy-heading">
         <h2 id="privacy-heading">Your data</h2>

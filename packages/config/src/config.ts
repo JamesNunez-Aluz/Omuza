@@ -36,6 +36,26 @@ export const configSchema = z.object({
   SMTP_HOST: z.string().default("localhost"),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
   EMAIL_FROM: z.string().email().default("login@resonance.local"),
+  // Spotify export pilot (Milestone 4) — all optional; the kill switch is
+  // FEATURE_SPOTIFY_EXPORT and the pilot allowlist gates every surface.
+  SPOTIFY_CLIENT_ID: z.string().default(""),
+  SPOTIFY_CLIENT_SECRET: z.string().default(""),
+  SPOTIFY_REDIRECT_URI: z.string().default(""),
+  SPOTIFY_ACCOUNTS_BASE_URL: z.string().url().default("https://accounts.spotify.com"),
+  SPOTIFY_API_BASE_URL: z.string().url().default("https://api.spotify.com"),
+  /** Comma-separated pilot user emails (Development Mode allowlist, §12.2). */
+  SPOTIFY_PILOT_ALLOWLIST: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter((entry) => entry.length > 0),
+    ),
+  /** 32-byte base64 key for AES-256-GCM token envelope encryption (ADR 0012). */
+  TOKEN_ENCRYPTION_KEY_B64: z.string().default(""),
+  TOKEN_ENCRYPTION_KEY_VERSION: z.string().default("v1"),
 });
 
 export interface AppConfig {
@@ -54,6 +74,14 @@ export interface AppConfig {
   smtpHost: string;
   smtpPort: number;
   emailFrom: string;
+  spotifyClientId: string;
+  spotifyClientSecret: string;
+  spotifyRedirectUri: string;
+  spotifyAccountsBaseUrl: string;
+  spotifyApiBaseUrl: string;
+  spotifyPilotAllowlist: string[];
+  tokenEncryptionKeyB64: string;
+  tokenEncryptionKeyVersion: string;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -81,5 +109,13 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     smtpHost: raw.SMTP_HOST,
     smtpPort: raw.SMTP_PORT,
     emailFrom: raw.EMAIL_FROM,
+    spotifyClientId: raw.SPOTIFY_CLIENT_ID,
+    spotifyClientSecret: raw.SPOTIFY_CLIENT_SECRET,
+    spotifyRedirectUri: raw.SPOTIFY_REDIRECT_URI,
+    spotifyAccountsBaseUrl: raw.SPOTIFY_ACCOUNTS_BASE_URL,
+    spotifyApiBaseUrl: raw.SPOTIFY_API_BASE_URL,
+    spotifyPilotAllowlist: raw.SPOTIFY_PILOT_ALLOWLIST,
+    tokenEncryptionKeyB64: raw.TOKEN_ENCRYPTION_KEY_B64,
+    tokenEncryptionKeyVersion: raw.TOKEN_ENCRYPTION_KEY_VERSION,
   };
 }

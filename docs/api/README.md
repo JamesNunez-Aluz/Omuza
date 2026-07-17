@@ -73,6 +73,23 @@ reproducibility and offline evaluation.
 | `/api/v1/playlists/{id}/rebuild` | POST | `{runId, preserveRecordingIds}` — keeps preserved tracks, replaces the rest with the new run's items (lineage retained) |
 | `/api/v1/playlists/{id}/exports/file` | POST | `{format: "csv"\|"m3u"}` → file download. Works with no destination connection. CSV columns per spec; M3U uses MusicBrainz permalinks as service-neutral references |
 
+## Destination connections & Spotify export (spec §13.11–13.12, pilot only)
+
+Every endpoint below exists only when `FEATURE_SPOTIFY_EXPORT=true` (404
+otherwise) and only for users on `SPOTIFY_PILOT_ALLOWLIST` (403 otherwise).
+Tokens never appear in any response.
+
+| Endpoint | Method | Notes |
+|---|---|---|
+| `/api/v1/connections/spotify/start` | POST | Returns `{authorizeUrl}` (Authorization Code + PKCE, one-time state, scope `playlist-modify-private` only) |
+| `/api/v1/connections/spotify/callback` | GET | One-time state consumption bound to the session user; server-side code exchange; encrypted token storage; safe redirect codes, never raw provider errors |
+| `/api/v1/connections` | GET | Connection status metadata only |
+| `/api/v1/connections/{connectionId}` | DELETE | Revoke + delete tokens + expire destination mappings + cancel queued exports; notes that Spotify-side playlists remain |
+| `/api/v1/playlists/{id}/exports/spotify` | POST | 202 `{exportId, status, statusUrl}`; Idempotency-Key deduplicates repeated clicks |
+| `/api/v1/exports/{exportId}` | GET | State machine status, counts, review items (temporary display fields), destination link |
+| `/api/v1/exports/{exportId}/confirm` | POST | `{confirmations:[{recordingId, accept}]}` — match review only; never touches taste |
+| `/api/v1/exports/{exportId}/retry` | POST | `{mode: resume\|keep\|clean_retry}` — resume uses the persisted destination playlist (no duplicates); ambiguous outcomes require an explicit user decision; clean retry supersedes, never deletes |
+
 ## Context profiles
 
 `POST/GET /api/v1/contexts`, `GET/PATCH/DELETE /api/v1/contexts/{contextId}` —

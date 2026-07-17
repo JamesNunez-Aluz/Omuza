@@ -19,10 +19,13 @@ export * from "./repositories/recommendations.js";
 export * from "./repositories/feedback.js";
 export * from "./repositories/playlists.js";
 export * from "./repositories/analytics.js";
+export * from "./repositories/connections.js";
+export * from "./repositories/exports.js";
 export { QUEUES, createQueue } from "./queue.js";
 export type {
   TasteRecomputeJob,
   PrivacyJob,
   PingJobData,
   RecommendationGenerateJob,
+  SpotifyExportJob,
 } from "./queue.js";

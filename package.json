@@ -23,6 +23,7 @@
     "db:migrate": "pnpm --filter @resonance/db migrate",
     "db:seed": "tsx scripts/seed-demo-data.ts",
     "report:funnel": "tsx scripts/funnel-report.ts",
+    "purge:provider-data": "tsx scripts/purge-expired-provider-data.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm policy:check"
   },
   "devDependencies": {

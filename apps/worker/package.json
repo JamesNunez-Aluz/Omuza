@@ -16,6 +16,7 @@
     "@resonance/domain": "workspace:*",
     "@resonance/observability": "workspace:*",
     "@resonance/recommender": "workspace:*",
+    "@resonance/spotify": "workspace:*",
     "pg-boss": "^10.1.0"
   },
   "devDependencies": {

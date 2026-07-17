@@ -6,14 +6,17 @@ import {
   auditEvents,
   authTokens,
   contextProfiles,
+  exports,
   exposures,
   feedbackEvents,
   idempotencyKeys,
   knownRecordings,
+  oauthTransactions,
   playlists,
   preferenceEvidence,
   privacyRequests,
   recommendationRuns,
+  serviceConnections,
   sessions,
   userPreferences,
   userSeedItems,
@@ -168,6 +171,15 @@ export async function performAccountDeletion(db: Database, userId: string): Prom
 
     await tx.delete(exposures).where(eq(exposures.userId, userId));
     await tx.delete(knownRecordings).where(eq(knownRecordings.userId, userId));
+
+    // Destination (Zone C) data: exports + temporary resolutions (cascade),
+    // connections + encrypted credentials (cascade), pending OAuth
+    // transactions. Deletion jobs must always include destination data
+    // (spec §18.3) — verified by policy gate P7.
+    await tx.delete(exports).where(eq(exports.userId, userId));
+    await tx.delete(serviceConnections).where(eq(serviceConnections.userId, userId));
+    await tx.delete(oauthTransactions).where(eq(oauthTransactions.userId, userId));
+
     await tx.delete(playlists).where(eq(playlists.userId, userId)); // items cascade
     await tx.delete(recommendationRuns).where(eq(recommendationRuns.userId, userId)); // trace cascades
     await tx.delete(analyticsEvents).where(eq(analyticsEvents.userId, userId));

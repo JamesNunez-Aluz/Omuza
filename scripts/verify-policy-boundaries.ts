@@ -24,8 +24,39 @@ const SOURCE_ROOTS = ["apps", "packages", "scripts"];
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
 const IGNORED_DIRS = new Set(["node_modules", "dist", ".next", ".turbo", "coverage"]);
 
-/** Files allowed to import @resonance/spotify. Empty until Milestone 4 (ADR required). */
-const SPOTIFY_IMPORT_ALLOWLIST: string[] = [];
+/**
+ * Files allowed to import @resonance/spotify (ADR 0002/0012, Milestone 4):
+ * exactly the worker export job, the web server's single Spotify module, and
+ * the integration tests that exercise that boundary with synthetic tokens.
+ * Recommendation, taste, and analytics code can never join this list.
+ */
+const SPOTIFY_IMPORT_ALLOWLIST: string[] = [
+  "apps/worker/src/jobs/spotify-export.ts",
+  "apps/web/src/server/spotify.ts",
+  "apps/worker/integration/spotify-export.integration.test.ts",
+  "apps/web/integration/spotify-connections.integration.test.ts",
+];
+
+/**
+ * Spotify surfaces that must never exist in this codebase (spec §6.2 c.11,
+ * §12.1): listening history, libraries, playlists-read, player state, audio
+ * features/analysis, previews, recommendations, and every read scope.
+ */
+const PROHIBITED_SPOTIFY_STRINGS = [
+  "audio-features",
+  "audio-analysis",
+  "v1/recommendations",
+  "me/top",
+  "recently-played",
+  "v1/me/tracks",
+  "me/player",
+  "preview_url",
+  "user-read-",
+  "user-library-",
+  "user-top-read",
+  "user-follow-",
+  "playlist-read-",
+];
 
 interface Violation {
   rule: string;
@@ -124,7 +155,10 @@ for (const root of SOURCE_ROOTS) {
       }
     }
 
-    if (!inSpotifyPackage && !isThisScript) {
+    // The config package may declare the base URL (consumed only by the
+    // adapter); no other file outside the adapter may reference the host.
+    const isConfigModule = relative === "packages/config/src/config.ts";
+    if (!inSpotifyPackage && !isThisScript && !isConfigModule) {
       if (source.includes("api.spotify.com")) {
         violations.push({
           rule: "R3 Spotify API host outside the adapter",
@@ -138,6 +172,32 @@ for (const root of SOURCE_ROOTS) {
           file: relative,
           detail: "references SpotifyTrackSearchResult",
         });
+      }
+    }
+
+    // R5: prohibited Spotify endpoint/scope strings anywhere in source
+    // (spec §12.1, §18.3): no history, libraries, players, audio features,
+    // previews, recommendations, or read/public scopes — not even inside
+    // the adapter.
+    if (!isThisScript) {
+      for (const prohibited of PROHIBITED_SPOTIFY_STRINGS) {
+        if (source.includes(prohibited)) {
+          violations.push({
+            rule: "R5 prohibited Spotify endpoint/scope string",
+            file: relative,
+            detail: `contains "${prohibited}"`,
+          });
+        }
+      }
+      const scopeMatches = source.match(/playlist-modify-\w+/g) ?? [];
+      for (const scope of scopeMatches) {
+        if (scope !== "playlist-modify-private") {
+          violations.push({
+            rule: "R5 Spotify scope outside the allowlist",
+            file: relative,
+            detail: `scope "${scope}" is not allowlisted`,
+          });
+        }
       }
     }
   }

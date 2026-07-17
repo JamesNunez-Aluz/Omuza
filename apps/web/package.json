@@ -18,6 +18,7 @@
     "@resonance/domain": "workspace:*",
     "@resonance/musicbrainz": "workspace:*",
     "@resonance/observability": "workspace:*",
+    "@resonance/spotify": "workspace:*",
     "@resonance/ui-tokens": "workspace:*",
     "@resonance/validation": "workspace:*",
     "next": "^15.1.0",

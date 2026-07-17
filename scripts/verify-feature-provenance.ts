@@ -99,6 +99,30 @@ function extractCreateTable(sql: string, table: string): string | undefined {
   return match?.[1];
 }
 
+// P6 — destination cache tables must carry a mandatory expiry (spec §18.3).
+const DESTINATION_CACHE_TABLES = ["export_item_resolutions", "oauth_transactions"];
+for (const file of readdirSync(migrationsDir).filter((name) => name.endsWith(".sql"))) {
+  const sql = readFileSync(path.join(migrationsDir, file), "utf8");
+  for (const table of DESTINATION_CACHE_TABLES) {
+    const definition = extractCreateTable(sql, table);
+    if (definition && !/expires_at timestamptz not null/.test(definition)) {
+      failures.push(`P6: destination cache table ${table} in ${file} lacks a mandatory expiry`);
+    }
+  }
+}
+
+// P7 — deletion must include destination data (spec §18.3): the account
+// deletion path has to remove exports, connections, and OAuth transactions.
+const privacySource = readFileSync(
+  path.join(repoRoot, "packages/db/src/repositories/privacy.ts"),
+  "utf8",
+);
+for (const requiredDeletion of ["exports", "serviceConnections", "oauthTransactions"]) {
+  if (!new RegExp(`delete\\(${requiredDeletion}\\)`).test(privacySource)) {
+    failures.push(`P7: performAccountDeletion does not delete ${requiredDeletion} (destination data)`);
+  }
+}
+
 if (failures.length > 0) {
   console.error(`policy:check FAILED — ${failures.length} provenance/license violation(s):\n`);
   for (const failure of failures) {

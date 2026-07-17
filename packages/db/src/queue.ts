@@ -12,10 +12,15 @@ export const QUEUES = {
   privacyExport: "privacy.export",
   privacyDelete: "privacy.delete",
   recommendationGenerate: "recommendation.generate",
+  spotifyExport: "spotify.export",
 } as const;
 
 export interface RecommendationGenerateJob {
   runId: string;
+}
+
+export interface SpotifyExportJob {
+  exportId: string;
 }
 
 export interface PingJobData {

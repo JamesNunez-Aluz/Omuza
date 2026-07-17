@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   date,
   doublePrecision,
   integer,
@@ -11,6 +12,13 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+/** Postgres bytea mapped to Buffer (ciphertext columns only). */
+const customBytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 /**
  * Typed mirror of packages/db/migrations. Migrations are hand-written SQL and
@@ -446,6 +454,102 @@ export const analyticsEvents = pgTable("analytics_events", {
   eventName: text("event_name").notNull(),
   properties: jsonb("properties").notNull().default({}),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const serviceConnections = pgTable("service_connections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  service: text("service").notNull(),
+  externalUserIdHash: text("external_user_id_hash"),
+  status: text("status").notNull().default("active"),
+  scopeSet: text("scope_set").array().notNull().default([]),
+  authorizedAt: timestamp("authorized_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  reauthorizationDueAt: timestamp("reauthorization_due_at", { withTimezone: true }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
+});
+
+export const encryptedOauthCredentials = pgTable("encrypted_oauth_credentials", {
+  connectionId: uuid("connection_id")
+    .primaryKey()
+    .references(() => serviceConnections.id, { onDelete: "cascade" }),
+  encryptedAccessToken: customBytea("encrypted_access_token").notNull(),
+  encryptedRefreshToken: customBytea("encrypted_refresh_token"),
+  keyVersion: text("key_version").notNull(),
+  accessNonce: customBytea("access_nonce").notNull(),
+  accessAuthTag: customBytea("access_auth_tag").notNull(),
+  refreshNonce: customBytea("refresh_nonce"),
+  refreshAuthTag: customBytea("refresh_auth_tag"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
+  rotatedAt: timestamp("rotated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthTransactions = pgTable("oauth_transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  service: text("service").notNull(),
+  stateHash: text("state_hash").notNull().unique(),
+  encryptedCodeVerifier: customBytea("encrypted_code_verifier").notNull(),
+  verifierNonce: customBytea("verifier_nonce").notNull(),
+  verifierAuthTag: customBytea("verifier_auth_tag").notNull(),
+  keyVersion: text("key_version").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+});
+
+export const exports = pgTable("exports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  playlistId: uuid("playlist_id")
+    .notNull()
+    .references(() => playlists.id, { onDelete: "cascade" }),
+  destination: text("destination").notNull(),
+  connectionId: uuid("connection_id"),
+  idempotencyKey: text("idempotency_key").notNull(),
+  status: text("status").notNull().default("requested"),
+  destinationPlaylistId: text("destination_playlist_id"),
+  destinationUrl: text("destination_url"),
+  supersededByExportId: uuid("superseded_by_export_id"),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  itemCount: integer("item_count").notNull().default(0),
+  resolvedCount: integer("resolved_count").notNull().default(0),
+  insertedCount: integer("inserted_count").notNull().default(0),
+  skippedCount: integer("skipped_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  errorCode: text("error_code"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const exportItemResolutions = pgTable("export_item_resolutions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  exportId: uuid("export_id")
+    .notNull()
+    .references(() => exports.id, { onDelete: "cascade" }),
+  recordingId: uuid("recording_id")
+    .notNull()
+    .references(() => recordings.id),
+  destinationItemId: text("destination_item_id"),
+  destinationUri: text("destination_uri"),
+  matchMethod: text("match_method"),
+  confidence: doublePrecision("confidence"),
+  status: text("status").notNull().default("pending"),
+  temporaryDisplayTitle: text("temporary_display_title"),
+  temporaryDisplayArtist: text("temporary_display_artist"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const recordingFeatures = pgTable("recording_features", {

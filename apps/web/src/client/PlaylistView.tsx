@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, api } from "./api";
+import { SpotifyExportPanel } from "./SpotifyExportPanel";
 
 interface PlaylistItem {
   id: string;
@@ -36,6 +37,13 @@ export function PlaylistView({ playlistId }: { playlistId: string }) {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [spotifyEnabled, setSpotifyEnabled] = useState(false);
+
+  useEffect(() => {
+    api<{ features?: { spotifyExport: boolean } }>("/api/v1/auth/me")
+      .then((me) => setSpotifyEnabled(me.features?.spotifyExport ?? false))
+      .catch(() => setSpotifyEnabled(false));
+  }, []);
 
   const load = useCallback(async () => {
     const response = await api<PlaylistResponse>(`/api/v1/playlists/${playlistId}`);
@@ -196,6 +204,8 @@ export function PlaylistView({ playlistId }: { playlistId: string }) {
           );
         })}
       </ol>
+      {spotifyEnabled ? <SpotifyExportPanel playlistId={playlistId} /> : null}
+
       <p>
         <Link href="/playlists">All playlists</Link> · <Link href="/home">Your profile</Link>
       </p>
