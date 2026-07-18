@@ -1,14 +1,95 @@
 # Resonance — Project Review & Handoff
 
-**Date:** 2026-07-13 · **State:** Milestones 0 and 1 implemented and verified · **Branch:** `claude/project-review-handoff-64zd8o`
+**Date:** 2026-07-13 (updated 2026-07-18) · **State:** Milestones 0–4 implemented and verified; **direction reset toward validation — see §0** · **Branch:** `claude/project-review-handoff-64zd8o`
 
-> **Milestone 1 update (same date):** identity (passwordless email auth,
-> sessions), append-only consent, MusicBrainz catalog adapter + search,
-> onboarding (seeds, contexts, discovery controls, review), taste-profile
-> derivation with recompute jobs, privacy export/delete, and the security
-> test suite are implemented on top of the M0 skeleton described below. See
-> `docs/api/README.md`, `docs/data-dictionary.md`, and the Milestone 1
-> completion report in the session log. Sections below describe M0.
+> **Milestone 1–4 update:** identity (passwordless email auth, sessions),
+> append-only consent, MusicBrainz catalog adapter + search, onboarding
+> (seeds, contexts, discovery controls, review), taste-profile derivation
+> with recompute jobs, privacy export/delete, the recommendation engine v0
+> (versioned, reproducible), the feedback learning loop, playlists with
+> CSV/M3U export, and the flag-gated Spotify export pilot are all
+> implemented on top of the M0 skeleton described below. See
+> `docs/api/README.md`, `docs/data-dictionary.md`, and the per-milestone
+> completion reports in the session log. Sections 2–8 below describe M0.
+
+---
+
+## 0. Project direction plan (added 2026-07-18) — validate before building more
+
+### Where we actually are
+
+Five milestones are built, every gate is green — and **zero humans have used
+the product**. Three gaps surfaced in review:
+
+1. **Nobody can hear any music in the product.** The UI presents
+   recommendations as text. There is no playback, no preview, not even a
+   per-track outbound "listen" link. The feedback loop asks users to rate
+   tracks they have no way of hearing without leaving the app and searching
+   by hand. For a music discovery product, this is the experience itself
+   being absent, not a missing feature.
+2. **Nothing is deployed.** All validation to date is synthetic tests. The
+   spec's own priority (§21, CLAUDE.md) — Milestones 0–3 *validated with
+   real users* — has not begun.
+3. **Positioning is unanswered.** "Why would a specific person choose this
+   over Spotify's built-in, zero-effort discovery?" has no written answer.
+   The onboarding asks for 8+ hand-declared seeds before any payoff; some
+   user must exist for whom that trade is worth it. Name that user.
+
+The engineering is not wasted — the compliance posture and service-neutral
+architecture are real assets *if* the product finds its user. But the next
+unit of progress is evidence, not code.
+
+### The plan
+
+**Phase A — close the listening gap (days, not weeks).**
+Add a service-neutral "listen" affordance to every recommended track:
+outbound links (user-configurable preferred service, plus a neutral
+search-link fallback) and, where licensing allows, embedded previews.
+Links carry no licensing burden; embedded audio must pass the same
+integration review as any provider. Exit: a user can go from
+recommendation → hearing the track → feedback without leaving the flow.
+
+**Phase B — deploy and run a closed pilot (week 1–2).**
+Stand up a production instance (managed Postgres, real email delivery,
+`FEATURE_SPOTIFY_EXPORT=false`). Recruit 5–10 people matching the target
+profile. Watch at least five full sessions live (screen share or in
+person). Instrument nothing new — the analytics funnel
+(`pnpm report:funnel`) already exists; *use* it.
+
+**Phase C — write the positioning sentence (parallel with B).**
+One sentence: *"[Named user type] uses Resonance instead of [incumbent
+behavior] because [specific value only we deliver]."* Candidate hypotheses
+to test in the pilot, not debate in the abstract: (a) listeners who
+distrust engagement-optimized algorithms and want an explainable,
+ownable taste profile; (b) deliberate discoverers (RYM/Bandcamp types) who
+treat finding music as an activity, not background automation; (c) people
+leaving a streaming service who want their taste to be portable. The pilot
+should kill or promote these.
+
+**Phase D — validation gates (end of pilot).**
+Provisional targets — revise the numbers with data, but never remove a
+gate without replacing it:
+
+| Gate | Metric | Target |
+|---|---|---|
+| G1 Onboarding survives contact | pilot users completing seed declaration | ≥ 70% |
+| G2 The loop closes | users giving feedback on ≥ 5 tracks of their first playlist | ≥ 60% |
+| G3 The product works | users with ≥ 1 *confirmed new love* in week one | ≥ 40% |
+| G4 It's wanted | users generating a 2nd playlist unprompted in week two | ≥ 30% |
+
+### Standing rule until the gates pass
+
+**No new build milestones.** Specifically deferred: Milestone 5, additional
+export destinations (Apple Music, Tidal, YouTube Music — the "universal"
+expansion), native mobile apps, and LLM-layer work. The Spotify pilot flag
+stays off (its launch checklist requires validated M0–3 anyway). Bug fixes,
+Phase A, deployment work, and anything a pilot user is blocked by are in
+scope. If a gate fails, the response is a positioning or product change and
+a re-run — not a new feature.
+
+The "work with any music service" goal is preserved, and already structural
+(neutral core, per-service adapters, universal file export). Destination
+adapters get built in demand order from pilot evidence, not speculatively.
 
 ---
 
